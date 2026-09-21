@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Figure 3 - System Architecture</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; }
+  h3 { text-align: center; font-size: 13px; margin-bottom: 15px; }
+  .diagram { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 800px; margin: 0 auto; }
+  .layer { border: 2px solid #333; border-radius: 8px; padding: 12px; width: 90%; }
+  .layer-title { font-weight: bold; font-size: 12px; margin-bottom: 8px; text-align: center; }
+  .ui-layer { background: #e8f4fd; border-color: #2980b9; }
+  .logic-layer { background: #fef9e7; border-color: #f39c12; }
+  .data-layer { background: #eafaf1; border-color: #27ae60; }
+  .offline-layer { background: #f5eef8; border-color: #8e44ad; }
+  .modules { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .module { background: white; border: 1px solid #999; border-radius: 4px; padding: 4px 8px; font-size: 10px; text-align: center; min-width: 80px; }
+  .users { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .user-box { background: #f0f0f0; border: 2px solid #555; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: bold; text-align: center; }
+  .arrow { font-size: 24px; color: #555; text-align: center; }
+  .arrow-label { font-size: 10px; color: #666; text-align: center; }
+  .db-icon { font-size: 20px; text-align: center; margin-bottom: 5px; }
+  .note { font-size: 10px; color: #666; text-align: center; font-style: italic; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h3>Figure 3. System Architecture of the Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<div class="diagram">
+
+  <!-- Users -->
+  <div style="width:100%; text-align:center;">
+    <div style="font-size:11px; font-weight:bold; margin-bottom:6px;">USER ROLES</div>
+    <div class="users">
+      <div class="user-box">👑 Administrator</div>
+      <div class="user-box">🏢 Office Head</div>
+      <div class="user-box">💰 Accountant</div>
+    </div>
+  </div>
+
+  <div class="arrow">⬇</div>
+  <div class="arrow-label">Role-Based Access Control (RBAC)</div>
+
+  <!-- UI Layer -->
+  <div class="layer ui-layer">
+    <div class="layer-title" style="color:#2980b9;">🖥️ User Interface Layer (React + Tailwind CSS)</div>
+    <div class="modules">
+      <div class="module">Login / Auth</div>
+      <div class="module">Dashboard</div>
+      <div class="module">Inventory</div>
+      <div class="module">Offices</div>
+      <div class="module">Reports</div>
+      <div class="module">QR Stickers</div>
+      <div class="module">Requisitions</div>
+      <div class="module">Procurement</div>
+      <div class="module">Audit View</div>
+      <div class="module">Notifications</div>
+      <div class="module">Profile</div>
+    </div>
+  </div>
+
+  <div class="arrow">⬇</div>
+  <div class="arrow-label">User Interactions & API Requests</div>
+
+  <!-- Logic Layer -->
+  <div class="layer logic-layer">
+    <div class="layer-title" style="color:#e67e22;">⚙️ Application Logic Layer (TypeScript)</div>
+    <div class="modules">
+      <div class="module">Authentication & Authorization</div>
+      <div class="module">Asset / Inventory Management</div>
+      <div class="module">Resource Tracking</div>
+      <div class="module">Requisitions & Procurement</div>
+      <div class="module">Report Generation<br>(ICS, PAR, ITR, Appendix 73)</div>
+      <div class="module">QR Code Generation</div>
+      <div class="module">Notification Engine</div>
+      <div class="module">User & Role Management</div>
+      <div class="module">Audit Trail Logging</div>
+    </div>
+  </div>
+
+  <div class="arrow">⬇</div>
+  <div class="arrow-label">Data Read/Write Operations</div>
+
+  <!-- Data Layer -->
+  <div class="layer data-layer">
+    <div class="layer-title" style="color:#27ae60;">🗄️ Data Management Layer (Firebase Firestore)</div>
+    <div class="modules">
+      <div class="module">Users</div>
+      <div class="module">Items / Assets</div>
+      <div class="module">Offices</div>
+      <div class="module">Categories</div>
+      <div class="module">Requisitions</div>
+      <div class="module">Procurement Txns</div>
+      <div class="module">System Logs</div>
+      <div class="module">Access Logs</div>
+      <div class="module">Notifications</div>
+    </div>
+  </div>
+
+  <div class="arrow">⬇ ⬆</div>
+  <div class="arrow-label">Bi-Directional Sync</div>
+
+  <!-- Offline Layer -->
+  <div class="layer offline-layer">
+    <div class="layer-title" style="color:#8e44ad;">📴 Offline Sync Layer (IndexedDB)</div>
+    <div class="modules">
+      <div class="module">Offline Edit Queue</div>
+      <div class="module">Sync on Reconnect</div>
+      <div class="module">Conflict Resolution</div>
+    </div>
+  </div>
+
+</div>
+
+<p class="note">Figure 3 illustrates the layered architecture of the system, from user interaction through application logic to cloud data storage, with an offline synchronization layer for connectivity-limited environments.</p>
+
+</body>
+</html>

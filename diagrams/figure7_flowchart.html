@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Figure 7 - Flowchart</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; }
+  h3 { text-align: center; font-size: 13px; margin-bottom: 10px; }
+  .caption { font-size: 11px; color: #555; text-align: center; font-style: italic; margin-top: 10px; max-width: 800px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<h3>Figure 7. Flowchart of the Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<svg viewBox="0 0 800 1050" xmlns="http://www.w3.org/2000/svg" width="800" height="1050" style="font-family: Arial, sans-serif;">
+  
+  <!-- START -->
+  <ellipse cx="400" cy="35" rx="70" ry="20" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+  <text x="400" y="39" text-anchor="middle" fill="white" font-size="12" font-weight="bold">START</text>
+
+  <!-- Arrow down -->
+  <line x1="400" y1="55" x2="400" y2="80" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- User enters credentials -->
+  <rect x="290" y="80" width="220" height="40" rx="5" fill="#ecf0f1" stroke="#333" stroke-width="1.5"/>
+  <text x="400" y="105" text-anchor="middle" font-size="11">User Enters Login Credentials</text>
+
+  <line x1="400" y1="120" x2="400" y2="150" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Decision: Valid Credentials? -->
+  <polygon points="400,150 510,190 400,230 290,190" fill="#fff3cd" stroke="#333" stroke-width="1.5"/>
+  <text x="400" y="194" text-anchor="middle" font-size="10">Valid Credentials?</text>
+
+  <!-- No -> Error -->
+  <line x1="510" y1="190" x2="620" y2="190" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="555" y="183" font-size="9" fill="#e74c3c">No</text>
+  <rect x="620" y="173" width="120" height="34" rx="3" fill="#f8d7da" stroke="#e74c3c" stroke-width="1.5"/>
+  <text x="680" y="195" text-anchor="middle" font-size="10" fill="#c0392b">Show Error Message</text>
+  <path d="M680,207 L680,240 L400,240 L400,230" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Yes -> Check Role -->
+  <line x1="400" y1="230" x2="400" y2="270" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="410" y="253" font-size="9" fill="#27ae60">Yes</text>
+
+  <!-- Decision: Role? -->
+  <polygon points="400,270 530,315 400,360 270,315" fill="#d5f5e3" stroke="#333" stroke-width="1.5"/>
+  <text x="400" y="312" text-anchor="middle" font-size="10">Check User Role</text>
+  <text x="400" y="325" text-anchor="middle" font-size="9">(RBAC)</text>
+
+  <!-- Role branches -->
+  <!-- Admin branch -->
+  <line x1="270" y1="315" x2="120" y2="315" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="190" y="308" font-size="8" fill="#2c3e50">Admin</text>
+  <rect x="20" y="295" width="100" height="40" rx="5" fill="#d6eaf8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="70" y="312" text-anchor="middle" font-size="9" fill="#2c3e50">Full Access</text>
+  <text x="70" y="325" text-anchor="middle" font-size="8" fill="#555">All Modules</text>
+
+  <!-- Accountant branch -->
+  <line x1="400" y1="360" x2="400" y2="400" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="410" y="385" font-size="8" fill="#c0392b">Accountant</text>
+  <rect x="340" y="400" width="120" height="35" rx="5" fill="#fdebd0" stroke="#c0392b" stroke-width="1.5"/>
+  <text x="400" y="415" text-anchor="middle" font-size="9" fill="#c0392b">Financial &amp;</text>
+  <text x="400" y="428" text-anchor="middle" font-size="8" fill="#555">Reporting Access</text>
+
+  <!-- Office Head branch -->
+  <line x1="530" y1="315" x2="660" y2="315" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="600" y="308" font-size="8" fill="#27ae60">Office Head</text>
+  <rect x="660" y="295" width="110" height="40" rx="5" fill="#d5f5e3" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="715" y="312" text-anchor="middle" font-size="9" fill="#27ae60">Asset Viewing &amp;</text>
+  <text x="715" y="325" text-anchor="middle" font-size="8" fill="#555">Requisitions</text>
+
+  <!-- Converge to Dashboard -->
+  <line x1="70" y1="335" x2="70" y2="470" stroke="#333" stroke-width="1.2"/>
+  <line x1="70" y1="470" x2="400" y2="470" stroke="#333" stroke-width="1.2"/>
+  <line x1="400" y1="435" x2="400" y2="470" stroke="#333" stroke-width="1.2"/>
+  <line x1="715" y1="335" x2="715" y2="470" stroke="#333" stroke-width="1.2"/>
+  <line x1="715" y1="470" x2="400" y2="470" stroke="#333" stroke-width="1.2"/>
+
+  <line x1="400" y1="470" x2="400" y2="500" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Dashboard -->
+  <rect x="300" y="500" width="200" height="35" rx="5" fill="#2c3e50" stroke="#2c3e50" stroke-width="1.5"/>
+  <text x="400" y="522" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Dashboard</text>
+
+  <line x1="400" y1="535" x2="400" y2="570" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Decision: Select Action -->
+  <polygon points="400,570 560,620 400,670 240,620" fill="#fff3cd" stroke="#333" stroke-width="1.5"/>
+  <text x="400" y="616" text-anchor="middle" font-size="10">Select Action</text>
+  <text x="400" y="630" text-anchor="middle" font-size="9">from Menu</text>
+
+  <!-- Action branches -->
+  <!-- Inventory Management -->
+  <line x1="240" y1="620" x2="100" y2="620" stroke="#333" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <text x="160" y="613" font-size="8">Inventory</text>
+  <rect x="10" y="610" width="90" height="20" rx="3" fill="#d4efdf" stroke="#27ae60"/>
+  <text x="55" y="624" text-anchor="middle" font-size="9">Add/Update Items</text>
+
+  <!-- Reports -->
+  <line x1="400" y1="670" x2="400" y2="700" stroke="#333" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <rect x="340" y="700" width="120" height="20" rx="3" fill="#d6eaf8" stroke="#2980b9"/>
+  <text x="400" y="714" text-anchor="middle" font-size="9">Generate Reports</text>
+
+  <!-- Requisitions -->
+  <line x1="560" y1="620" x2="660" y2="620" stroke="#333" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+  <text x="610" y="613" font-size="8">Requisitions</text>
+  <rect x="660" y="610" width="110" height="20" rx="3" fill="#e8daef" stroke="#8e44ad"/>
+  <text x="715" y="624" text-anchor="middle" font-size="9">Submit/Approve</text>
+
+  <!-- Converge to Process -->
+  <line x1="55" y1="630" x2="55" y2="745" stroke="#333" stroke-width="1"/>
+  <line x1="55" y1="745" x2="400" y2="745" stroke="#333" stroke-width="1"/>
+  <line x1="400" y1="720" x2="400" y2="745" stroke="#333" stroke-width="1"/>
+  <line x1="715" y1="630" x2="715" y2="745" stroke="#333" stroke-width="1"/>
+  <line x1="715" y1="745" x2="400" y2="745" stroke="#333" stroke-width="1"/>
+
+  <line x1="400" y1="745" x2="400" y2="775" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Process & Store -->
+  <rect x="300" y="775" width="200" height="35" rx="5" fill="#d5f5e3" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="400" y="790" text-anchor="middle" font-size="10" fill="#27ae60">Process Data &amp;</text>
+  <text x="400" y="803" text-anchor="middle" font-size="10" fill="#27ae60">Store in Firestore</text>
+
+  <line x1="400" y1="810" x2="400" y2="845" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Decision: Offline? -->
+  <polygon points="400,845 510,885 400,925 290,885" fill="#f5eef8" stroke="#333" stroke-width="1.5"/>
+  <text x="400" y="882" text-anchor="middle" font-size="10">Internet</text>
+  <text x="400" y="895" text-anchor="middle" font-size="10">Available?</text>
+
+  <!-- No -> Queue offline -->
+  <line x1="510" y1="885" x2="620" y2="885" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="555" y="878" font-size="9" fill="#e74c3c">No</text>
+  <rect x="620" y="868" width="120" height="34" rx="3" fill="#f5eef8" stroke="#8e44ad"/>
+  <text x="680" y="883" text-anchor="middle" font-size="9" fill="#8e44ad">Queue Offline</text>
+  <text x="680" y="896" text-anchor="middle" font-size="8" fill="#555">(IndexedDB)</text>
+  <path d="M680,902 L680,950 L400,950" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <path d="M680,902 L680,930 L400,930" fill="none" stroke="#8e44ad" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+  <text x="550" y="945" font-size="8" fill="#8e44ad">Sync on reconnect</text>
+
+  <!-- Yes -> Cloud Sync -->
+  <line x1="400" y1="925" x2="400" y2="950" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <text x="410" y="942" font-size="9" fill="#27ae60">Yes</text>
+
+  <rect x="310" y="950" width="180" height="30" rx="5" fill="#d4efdf" stroke="#27ae60" stroke-width="1.5"/>
+  <text x="400" y="970" text-anchor="middle" font-size="10" fill="#27ae60">Cloud Sync Complete</text>
+
+  <line x1="400" y1="980" x2="400" y2="1010" stroke="#333" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Display Confirmation -->
+  <rect x="310" y="1010" width="180" height="30" rx="5" fill="#d6eaf8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="400" y="1030" text-anchor="middle" font-size="10" fill="#2c3e50">Display Confirmation</text>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>
+
+<p class="caption">Figure 7. Flowchart illustrating the process flow of the Centralized Inventory and Resource Tracking System of LGU Tibiao, from user authentication through role-based access (Administrator, Accountant, Office Head) to data processing and cloud synchronization.</p>
+
+</body>
+</html>

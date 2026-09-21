@@ -1,0 +1,510 @@
+@import "tailwindcss";
+
+:root {
+  --gov-navy: #10243e;
+  --gov-navy-deep: #0b1a2d;
+  --gov-blue: #145da0;
+  --gov-red: #b4232c;
+  --gov-gold: #c99a2e;
+  --gov-paper: #f4f6f8;
+  --gov-line: #d9e0e7;
+  --gov-ink: #172b43;
+}
+
+.gov-app {
+  color: var(--gov-ink);
+  background: var(--gov-paper) !important;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.gov-app .font-brand,
+.gov-app h1,
+.gov-app h2,
+.gov-app h3,
+.gov-app h4 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0;
+}
+
+.gov-main {
+  background:
+    linear-gradient(rgba(244, 246, 248, 0.94), rgba(244, 246, 248, 0.94)),
+    repeating-linear-gradient(0deg, transparent 0, transparent 31px, rgba(16, 36, 62, 0.035) 32px);
+}
+
+.gov-main > div {
+  max-width: 88rem;
+}
+
+.gov-app button,
+.gov-app input,
+.gov-app select,
+.gov-app textarea {
+  border-radius: 6px;
+}
+
+.gov-app button {
+  letter-spacing: 0.025em;
+}
+
+.gov-app .shadow-sm,
+.gov-app .shadow-lg,
+.gov-app .shadow-xl,
+.gov-app .shadow-2xl {
+  box-shadow: 0 2px 8px rgba(16, 36, 62, 0.08) !important;
+}
+
+.gov-app .card-lift:hover,
+.gov-app .card-lift-sm:hover,
+.gov-app .card-lift-lg:hover {
+  animation: none;
+  transform: translateY(-2px);
+}
+
+.gov-app .text-gray-400 {
+  color: #617286 !important;
+}
+
+.gov-app .text-gray-500 {
+  color: #4b5f73 !important;
+}
+
+.gov-app .border-gray-100,
+.gov-app .border-gray-200 {
+  border-color: var(--gov-line) !important;
+}
+
+.gov-app .bg-blue-600,
+.gov-app .bg-indigo-600 {
+  background: var(--gov-blue) !important;
+}
+
+.gov-app .bg-emerald-600 {
+  background: #147d64 !important;
+}
+
+.gov-app .bg-red-500,
+.gov-app .bg-red-600 {
+  background: var(--gov-red) !important;
+}
+
+.gov-section-rule {
+  border-top: 4px solid var(--gov-gold);
+}
+
+.sticker-sheet {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 14px;
+  row-gap: 18px;
+  align-items: start;
+  justify-items: center;
+}
+
+.sticker-tag {
+  width: 100%;
+  max-width: 420px;
+  min-height: 390px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.sticker-tag-full {
+  max-width: 480px;
+}
+
+@media screen and (max-width: 767px) {
+  .sticker-sheet {
+    grid-template-columns: 1fr;
+    row-gap: 14px;
+  }
+}
+
+@media print {
+  .sticker-sheet {
+    width: 100%;
+    column-gap: 8mm;
+    row-gap: 8mm;
+    align-items: start;
+  }
+
+  .sticker-tag {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    margin: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+.accounting-pr-form input:not([type="checkbox"]),
+.accounting-pr-form select,
+.accounting-pr-form textarea {
+  background: #f8fafc !important;
+  border: 1px solid #dbe3ec !important;
+  color: #172b43 !important;
+  border-radius: 6px !important;
+}
+
+.accounting-pr-form input::placeholder,
+.accounting-pr-form textarea::placeholder {
+  color: #718096 !important;
+}
+
+.accounting-pr-form .bg-slate-850,
+.accounting-pr-form .bg-slate-800 {
+  background: #f8fafc !important;
+}
+
+.accounting-pr-form .text-white,
+.accounting-pr-form .text-slate-200,
+.accounting-pr-form .text-slate-250 {
+  color: #172b43 !important;
+}
+
+.accounting-pr-form .border-slate-750,
+.accounting-pr-form .border-slate-700 {
+  border-color: #dbe3ec !important;
+}
+
+@media (max-width: 767px) {
+  .gov-main {
+    padding: 0.75rem !important;
+  }
+
+  .gov-main h1,
+  .gov-main h2 {
+    line-height: 1.15;
+  }
+}
+
+.gov-sidebar {
+  background: var(--gov-navy-deep) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #fff;
+}
+
+.gov-app > aside {
+  background: var(--gov-navy-deep) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.gov-app > aside button {
+  border-radius: 8px !important;
+}
+
+.gov-app > aside button.bg-blue-600,
+.gov-app > aside button.bg-indigo-600 {
+  background: var(--gov-blue) !important;
+  box-shadow: inset 3px 0 0 var(--gov-gold) !important;
+}
+
+.gov-app > div > header {
+  background: #fff !important;
+  border-color: var(--gov-line) !important;
+}
+
+.gov-sidebar > div:first-child {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.gov-brand-lockup {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 65%);
+}
+
+.gov-seal-frame {
+  background: #fff;
+  border: 2px solid rgba(240, 201, 91, 0.9);
+  border-radius: 10px;
+  padding: 2px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+}
+
+.gov-brand-lockup span {
+  color: #f4f7fb !important;
+}
+
+.gov-brand-lockup span:last-child {
+  color: #f0c95b !important;
+}
+
+.gov-sidebar nav > div {
+  color: #c3d0df !important;
+}
+
+.gov-sidebar .text-gray-800,
+.gov-sidebar .text-gray-900,
+.gov-sidebar .text-slate-900,
+.gov-sidebar .text-slate-800 {
+  color: #f4f7fb !important;
+}
+
+.gov-sidebar .text-gray-600,
+.gov-sidebar .text-gray-500,
+.gov-sidebar .text-slate-600,
+.gov-sidebar .text-slate-500 {
+  color: #d4deea !important;
+}
+
+.gov-sidebar .text-gray-400,
+.gov-sidebar .text-slate-400 {
+  color: #aebed0 !important;
+}
+
+.gov-sidebar nav button {
+  color: #d4deea !important;
+  border-radius: 8px !important;
+}
+
+.gov-sidebar nav button:hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #fff !important;
+}
+
+.gov-sidebar nav button.bg-blue-600 {
+  background: var(--gov-blue) !important;
+  box-shadow: inset 3px 0 0 var(--gov-gold), 0 8px 20px rgba(0, 0, 0, 0.18) !important;
+}
+
+.gov-sidebar .text-blue-600 {
+  color: #f0c95b !important;
+}
+
+.gov-sidebar svg {
+  color: #d4deea;
+}
+
+.gov-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(174, 190, 208, 0.55) transparent;
+  scrollbar-gutter: stable;
+}
+
+.gov-sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gov-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gov-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(174, 190, 208, 0.55);
+  border-radius: 999px;
+}
+
+.gov-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(240, 201, 91, 0.8);
+}
+
+.gov-sidebar nav button.bg-blue-600 svg,
+.gov-sidebar nav button.bg-blue-600 span {
+  color: #ffffff !important;
+}
+
+.gov-sidebar > div:last-child {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.gov-sidebar > div:last-child button {
+  color: #f4a3a8 !important;
+  border-radius: 8px !important;
+}
+
+.gov-header {
+  box-shadow: 0 1px 0 rgba(16, 36, 62, 0.04), 0 5px 16px rgba(16, 36, 62, 0.04);
+}
+
+.gov-header-seal {
+  background: #fff;
+  border: 2px solid var(--gov-gold);
+  border-radius: 50%;
+  padding: 2px;
+  box-shadow: 0 3px 10px rgba(16, 36, 62, 0.14);
+}
+
+.gov-header-seal img {
+  border-radius: 50%;
+}
+
+.gov-header h1 {
+  color: var(--gov-navy) !important;
+  font-size: 1rem;
+}
+
+.gov-header .bg-blue-50 {
+  background: #e8f0f8 !important;
+  color: var(--gov-blue) !important;
+  border-radius: 3px !important;
+}
+
+.gov-app .bg-white {
+  border-color: var(--gov-line) !important;
+  box-shadow: 0 5px 18px rgba(16, 36, 62, 0.055) !important;
+}
+
+.gov-app .rounded-\[40px\],
+.gov-app .rounded-\[48px\],
+.gov-app .rounded-\[32px\],
+.gov-app .rounded-\[34px\],
+.gov-app .rounded-\[28px\],
+.gov-app .rounded-\[24px\] {
+  border-radius: 14px !important;
+}
+
+.gov-app button.bg-blue-600,
+.gov-app button.bg-indigo-600 {
+  background: var(--gov-blue) !important;
+  border-radius: 6px !important;
+}
+
+.gov-app button.bg-blue-600:hover,
+.gov-app button.bg-indigo-600:hover {
+  background: var(--gov-navy) !important;
+}
+
+.gov-app .text-blue-600,
+.gov-app .text-indigo-600 {
+  color: var(--gov-blue) !important;
+}
+
+.gov-app .border-blue-600,
+.gov-app .border-indigo-600 {
+  border-color: var(--gov-blue) !important;
+}
+
+.gov-app .bg-gray-50 {
+  background: #eef2f5 !important;
+}
+
+.gov-app .bg-blue-50 {
+  background: #e8f0f8 !important;
+}
+
+.gov-app .bg-red-50 {
+  background: #fceced !important;
+}
+
+@media (max-width: 767px) {
+  .gov-main {
+    padding: 1rem !important;
+  }
+}
+
+@layer utilities {
+  .font-brand {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOVER ZOOM IN/OUT — Cards zoom in and out on mouse hover
+   ═══════════════════════════════════════════════════════════════ */
+.card-lift {
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, box-shadow;
+}
+
+.card-lift:hover {
+  animation: cardZoomPulse 1.2s ease-in-out infinite;
+  box-shadow: 0 20px 40px -12px rgba(16, 36, 62, 0.15),
+              0 0 0 1px rgba(20, 93, 160, 0.08);
+}
+
+@keyframes cardZoomPulse {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.03); }
+}
+
+.card-lift-sm {
+  transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, box-shadow;
+}
+
+.card-lift-sm:hover {
+  animation: cardZoomPulseSm 1s ease-in-out infinite;
+  box-shadow: 0 12px 28px -8px rgba(16, 36, 62, 0.12),
+              0 0 0 1px rgba(20, 93, 160, 0.06);
+}
+
+@keyframes cardZoomPulseSm {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+.card-lift-lg {
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, box-shadow;
+}
+
+.card-lift-lg:hover {
+  animation: cardZoomPulseLg 1.4s ease-in-out infinite;
+  box-shadow: 0 32px 64px -16px rgba(16, 36, 62, 0.2),
+              0 0 0 1px rgba(20, 93, 160, 0.1);
+}
+
+@keyframes cardZoomPulseLg {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.04); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SEAL GLOW + ZOOM — Breathing glow + zoom in/out on the Tibiao seal
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes sealGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(201, 154, 46, 0.2),
+                0 0 16px rgba(201, 154, 46, 0.08);
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(201, 154, 46, 0.4),
+                0 0 32px rgba(201, 154, 46, 0.15),
+                0 0 48px rgba(20, 93, 160, 0.08);
+    filter: brightness(1.08) drop-shadow(0 0 8px rgba(201, 154, 46, 0.25));
+    transform: scale(1.08);
+  }
+}
+
+@keyframes sealGlowPulseBlue {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(20, 93, 160, 0.15),
+                0 0 16px rgba(20, 93, 160, 0.06);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(20, 93, 160, 0.35),
+                0 0 36px rgba(20, 93, 160, 0.12),
+                0 0 52px rgba(201, 154, 46, 0.06);
+    transform: scale(1.06);
+  }
+}
+
+.seal-glow {
+  animation: sealGlowPulse 3.5s ease-in-out infinite;
+  transition: box-shadow 0.4s ease, filter 0.4s ease;
+  transform-origin: center center;
+}
+
+.seal-glow-blue {
+  animation: sealGlowPulseBlue 4s ease-in-out infinite;
+  transition: box-shadow 0.4s ease;
+  transform-origin: center center;
+}
+
+.seal-glow:hover {
+  animation: sealGlowHover 0.8s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(201, 154, 46, 0.5),
+              0 0 40px rgba(201, 154, 46, 0.2),
+              0 0 60px rgba(20, 93, 160, 0.1);
+  filter: brightness(1.15);
+}
+
+@keyframes sealGlowHover {
+  0%, 100% { transform: scale(1.08); }
+  50% { transform: scale(1.15); }
+}

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Figure 8 - Sequence Diagram</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; }
+  h3 { text-align: center; font-size: 13px; margin-bottom: 5px; }
+  .caption { font-size: 11px; color: #555; text-align: center; font-style: italic; margin-top: 10px; max-width: 900px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<h3>Figure 8. Sequence Diagram of Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<svg viewBox="0 0 1400 1620" xmlns="http://www.w3.org/2000/svg" width="1400" height="1620" style="font-family: Arial, sans-serif;">
+
+  <!-- Arrowhead markers -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#000"/>
+    </marker>
+    <marker id="arrow-dash" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#000"/>
+    </marker>
+  </defs>
+
+  <!-- ==================== TITLE ==================== -->
+  <text x="700" y="22" text-anchor="middle" font-size="14" font-weight="bold">CENTRALIZED INVENTORY AND RESOURCE TRACKING SYSTEM</text>
+  <text x="700" y="42" text-anchor="middle" font-size="13" font-weight="bold">SEQUENCE DIAGRAM</text>
+
+  <!-- ==================== PARTICIPANT BOXES ==================== -->
+  <!-- y=60 to y=95 -->
+
+  <!-- 1. Administrator -->
+  <rect x="40" y="60" width="110" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="95" y="82" text-anchor="middle" font-size="10" font-weight="bold">Administrator</text>
+
+  <!-- 2. Office Head -->
+  <rect x="190" y="60" width="110" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="245" y="82" text-anchor="middle" font-size="10" font-weight="bold">Office Head</text>
+
+  <!-- 3. Accounting -->
+  <rect x="340" y="60" width="110" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="395" y="82" text-anchor="middle" font-size="10" font-weight="bold">Accounting</text>
+
+  <!-- 4. Application -->
+  <rect x="495" y="60" width="120" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="555" y="77" text-anchor="middle" font-size="10" font-weight="bold">Application</text>
+  <text x="555" y="89" text-anchor="middle" font-size="8">(Web / React)</text>
+
+  <!-- 5. Firebase Authentication -->
+  <rect x="660" y="60" width="120" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="720" y="77" text-anchor="middle" font-size="9" font-weight="bold">Firebase</text>
+  <text x="720" y="89" text-anchor="middle" font-size="9" font-weight="bold">Authentication</text>
+
+  <!-- 6. Firestore -->
+  <rect x="825" y="60" width="120" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="885" y="77" text-anchor="middle" font-size="10" font-weight="bold">Firestore</text>
+  <text x="885" y="89" text-anchor="middle" font-size="8">(Cloud Database)</text>
+
+  <!-- 7. Report Module -->
+  <rect x="990" y="60" width="110" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="1045" y="77" text-anchor="middle" font-size="10" font-weight="bold">Report</text>
+  <text x="1045" y="89" text-anchor="middle" font-size="10" font-weight="bold">Module</text>
+
+  <!-- 8. IndexedDB -->
+  <rect x="1150" y="60" width="120" height="35" fill="white" stroke="black" stroke-width="1.5" rx="3"/>
+  <text x="1210" y="77" text-anchor="middle" font-size="10" font-weight="bold">IndexedDB</text>
+  <text x="1210" y="89" text-anchor="middle" font-size="8">(Local Storage)</text>
+
+  <!-- ==================== DASHED LIFELINES ==================== -->
+  <line x1="95" y1="95" x2="95" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="245" y1="95" x2="245" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="395" y1="95" x2="395" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="555" y1="95" x2="555" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="720" y1="95" x2="720" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="885" y1="95" x2="885" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="1045" y1="95" x2="1045" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+  <line x1="1210" y1="95" x2="1210" y2="1420" stroke="black" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- ==================== ACTIVATION BARS (on Application lifeline) ==================== -->
+  <!-- Auth phase activation -->
+  <rect x="551" y="115" width="8" height="210" fill="white" stroke="black" stroke-width="1"/>
+  <!-- Inventory phase activation -->
+  <rect x="551" y="360" width="8" height="120" fill="white" stroke="black" stroke-width="1"/>
+  <!-- Requisition phase activation -->
+  <rect x="551" y="520" width="8" height="290" fill="white" stroke="black" stroke-width="1"/>
+  <!-- Report phase activation -->
+  <rect x="551" y="850" width="8" height="180" fill="white" stroke="black" stroke-width="1"/>
+  <!-- Offline phase activation -->
+  <rect x="551" y="1070" width="8" height="210" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- Firebase Auth activation -->
+  <rect x="716" y="145" width="8" height="40" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- Firestore activations -->
+  <rect x="881" y="180" width="8" height="35" fill="white" stroke="black" stroke-width="1"/>
+  <rect x="881" y="390" width="8" height="35" fill="white" stroke="black" stroke-width="1"/>
+  <rect x="881" y="560" width="8" height="35" fill="white" stroke="black" stroke-width="1"/>
+  <rect x="881" y="910" width="8" height="65" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- Report Module activation -->
+  <rect x="1041" y="890" width="8" height="70" fill="white" stroke="black" stroke-width="1"/>
+
+  <!-- IndexedDB activation -->
+  <rect x="1206" y="1120" width="8" height="100" fill="white" stroke="black" stroke-width="1"/>
+
+
+  <!-- ================================================================ -->
+  <!--                    PHASE 1 — AUTHENTICATION                      -->
+  <!-- ================================================================ -->
+  <rect x="30" y="105" width="1340" height="22" fill="none" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="700" y="120" text-anchor="middle" font-size="11" font-weight="bold">1. AUTHENTICATION PHASE</text>
+
+  <!-- Step 1: User → Application -->
+  <text x="20" y="148" font-size="9" font-weight="bold">1.</text>
+  <!-- Bracket from users to App -->
+  <line x1="95" y1="143" x2="551" y2="143" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="200" y="133" width="180" height="14" fill="white" stroke="none"/>
+  <text x="290" y="144" text-anchor="middle" font-size="9">Enter username and password</text>
+  <text x="165" y="144" text-anchor="middle" font-size="8" font-style="italic">[Any Authorized User]</text>
+
+  <!-- Step 2: Application → Firebase Auth -->
+  <text x="20" y="175" font-size="9" font-weight="bold">2.</text>
+  <line x1="559" y1="170" x2="716" y2="170" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="570" y="160" width="140" height="14" fill="white" stroke="none"/>
+  <text x="640" y="171" text-anchor="middle" font-size="9">Authenticate credentials</text>
+
+  <!-- Step 3: Firebase Auth → Application (dashed - response) -->
+  <text x="20" y="202" font-size="9" font-weight="bold">3.</text>
+  <line x1="716" y1="197" x2="559" y2="197" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="570" y="187" width="145" height="14" fill="white" stroke="none"/>
+  <text x="643" y="198" text-anchor="middle" font-size="9">Auth result (success / failure)</text>
+
+  <!-- Step 4: Application → Firestore -->
+  <text x="20" y="230" font-size="9" font-weight="bold">4.</text>
+  <line x1="559" y1="225" x2="881" y2="225" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="630" y="215" width="180" height="14" fill="white" stroke="none"/>
+  <text x="720" y="226" text-anchor="middle" font-size="9">Load user profile and role</text>
+
+  <!-- Step 5: Firestore → Application (dashed) -->
+  <text x="20" y="257" font-size="9" font-weight="bold">5.</text>
+  <line x1="881" y1="252" x2="559" y2="252" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="630" y="242" width="180" height="14" fill="white" stroke="none"/>
+  <text x="720" y="253" text-anchor="middle" font-size="9">User profile and permissions</text>
+
+  <!-- Step 6: Application → User (dashed - return) -->
+  <text x="20" y="285" font-size="9" font-weight="bold">6.</text>
+  <line x1="551" y1="280" x2="95" y2="280" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="180" y="270" width="280" height="14" fill="white" stroke="none"/>
+  <text x="320" y="281" text-anchor="middle" font-size="9">Authentication successful – Access granted</text>
+
+  <!-- Invalid credentials note -->
+  <rect x="730" y="155" width="155" height="28" fill="none" stroke="black" stroke-width="0.8" rx="2"/>
+  <text x="807" y="166" text-anchor="middle" font-size="8">If credentials invalid:</text>
+  <text x="807" y="177" text-anchor="middle" font-size="8">Access denied / Error message</text>
+  <line x1="724" y1="183" x2="724" y2="155" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+
+
+  <!-- ================================================================ -->
+  <!--               PHASE 2 — INVENTORY MANAGEMENT                     -->
+  <!-- ================================================================ -->
+  <rect x="30" y="330" width="1340" height="22" fill="none" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="700" y="345" text-anchor="middle" font-size="11" font-weight="bold">2. INVENTORY MANAGEMENT PHASE</text>
+
+  <!-- Step 7: Authorized User → Application -->
+  <text x="20" y="373" font-size="9" font-weight="bold">7.</text>
+  <line x1="95" y1="368" x2="551" y2="368" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="180" y="358" width="280" height="14" fill="white" stroke="none"/>
+  <text x="320" y="369" text-anchor="middle" font-size="9">Add / Update / Delete Asset or Inventory Item</text>
+  <text x="165" y="369" text-anchor="middle" font-size="8" font-style="italic">[Any Authorized User]</text>
+
+  <!-- Step 8: Application → Firestore -->
+  <text x="20" y="400" font-size="9" font-weight="bold">8.</text>
+  <line x1="559" y1="395" x2="881" y2="395" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="620" y="385" width="200" height="14" fill="white" stroke="none"/>
+  <text x="720" y="396" text-anchor="middle" font-size="9">Validate and save inventory data</text>
+
+  <!-- Step 9: Firestore → Application (dashed) -->
+  <text x="20" y="427" font-size="9" font-weight="bold">9.</text>
+  <line x1="881" y1="422" x2="559" y2="422" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="660" y="412" width="120" height="14" fill="white" stroke="none"/>
+  <text x="720" y="423" text-anchor="middle" font-size="9">Save confirmation</text>
+
+  <!-- Step 10: Application → User (dashed) -->
+  <text x="20" y="455" font-size="9" font-weight="bold">10.</text>
+  <line x1="551" y1="450" x2="95" y2="450" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="210" y="440" width="210" height="14" fill="white" stroke="none"/>
+  <text x="315" y="451" text-anchor="middle" font-size="9">Success / failure notification</text>
+
+
+  <!-- ================================================================ -->
+  <!--              PHASE 3 — REQUISITION WORKFLOW                      -->
+  <!-- ================================================================ -->
+  <rect x="30" y="490" width="1340" height="22" fill="none" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="700" y="505" text-anchor="middle" font-size="11" font-weight="bold">3. REQUISITION WORKFLOW PHASE</text>
+
+  <!-- Step 11: Authorized User → Application -->
+  <text x="20" y="533" font-size="9" font-weight="bold">11.</text>
+  <line x1="95" y1="528" x2="551" y2="528" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="240" y="518" width="130" height="14" fill="white" stroke="none"/>
+  <text x="305" y="529" text-anchor="middle" font-size="9">Submit requisition</text>
+
+  <!-- Step 12: Application → Firestore -->
+  <text x="20" y="560" font-size="9" font-weight="bold">12.</text>
+  <line x1="559" y1="555" x2="881" y2="555" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="660" y="545" width="120" height="14" fill="white" stroke="none"/>
+  <text x="720" y="556" text-anchor="middle" font-size="9">Store requisition</text>
+
+  <!-- Step 13: Firestore → Application (dashed) -->
+  <text x="20" y="587" font-size="9" font-weight="bold">13.</text>
+  <line x1="881" y1="582" x2="559" y2="582" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="650" y="572" width="140" height="14" fill="white" stroke="none"/>
+  <text x="720" y="583" text-anchor="middle" font-size="9">Requisition saved</text>
+
+  <!-- Step 14: Application → Office Head -->
+  <text x="20" y="615" font-size="9" font-weight="bold">14.</text>
+  <line x1="551" y1="610" x2="249" y2="610" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="300" y="600" width="160" height="14" fill="white" stroke="none"/>
+  <text x="380" y="611" text-anchor="middle" font-size="9">Requisition for approval</text>
+
+  <!-- Step 15: Office Head → Application -->
+  <text x="20" y="642" font-size="9" font-weight="bold">15.</text>
+  <line x1="245" y1="637" x2="551" y2="637" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="290" y="627" width="180" height="14" fill="white" stroke="none"/>
+  <text x="380" y="638" text-anchor="middle" font-size="9">Review and Approve / Reject</text>
+
+  <!-- Step 16: Application → Firestore -->
+  <text x="20" y="670" font-size="9" font-weight="bold">16.</text>
+  <line x1="559" y1="665" x2="881" y2="665" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="630" y="655" width="180" height="14" fill="white" stroke="none"/>
+  <text x="720" y="666" text-anchor="middle" font-size="9">Update requisition status</text>
+
+  <!-- Step 17: Firestore → Application (dashed) -->
+  <text x="20" y="697" font-size="9" font-weight="bold">17.</text>
+  <line x1="881" y1="692" x2="559" y2="692" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="660" y="682" width="120" height="14" fill="white" stroke="none"/>
+  <text x="720" y="693" text-anchor="middle" font-size="9">Status updated</text>
+
+  <!-- Step 18: Application → Relevant User (dashed) -->
+  <text x="20" y="725" font-size="9" font-weight="bold">18.</text>
+  <line x1="551" y1="720" x2="95" y2="720" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="170" y="710" width="290" height="14" fill="white" stroke="none"/>
+  <text x="315" y="721" text-anchor="middle" font-size="9">Approval / Rejection notification</text>
+
+  <!-- Step 19: Application → Requesting User (dashed) -->
+  <text x="20" y="752" font-size="9" font-weight="bold">19.</text>
+  <line x1="551" y1="747" x2="395" y2="747" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="395" y="737" width="160" height="14" fill="white" stroke="none"/>
+  <text x="470" y="748" text-anchor="middle" font-size="9">If rejected: Return for revision</text>
+  <text x="470" y="760" text-anchor="middle" font-size="8" font-style="italic">[to requesting user]</text>
+
+
+  <!-- ================================================================ -->
+  <!--               PHASE 4 — REPORT GENERATION                        -->
+  <!-- ================================================================ -->
+  <rect x="30" y="790" width="1340" height="22" fill="none" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="700" y="805" text-anchor="middle" font-size="11" font-weight="bold">4. REPORT GENERATION PHASE</text>
+
+  <!-- Step 20: Authorized User → Application -->
+  <text x="20" y="833" font-size="9" font-weight="bold">20.</text>
+  <line x1="95" y1="828" x2="551" y2="828" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="160" y="818" width="320" height="14" fill="white" stroke="none"/>
+  <text x="320" y="829" text-anchor="middle" font-size="9">Request Report (ICS / PAR / ITR / Appendix 73)</text>
+
+  <!-- Step 21: Application → Report Module -->
+  <text x="20" y="860" font-size="9" font-weight="bold">21.</text>
+  <line x1="559" y1="855" x2="1041" y2="855" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="750" y="845" width="120" height="14" fill="white" stroke="none"/>
+  <text x="810" y="856" text-anchor="middle" font-size="9">Generate Report</text>
+
+  <!-- Step 22: Report Module → Firestore -->
+  <text x="20" y="887" font-size="9" font-weight="bold">22.</text>
+  <line x1="1041" y1="882" x2="889" y2="882" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="910" y="872" width="125" height="14" fill="white" stroke="none"/>
+  <text x="965" y="883" text-anchor="middle" font-size="9">Fetch data for report</text>
+
+  <!-- Step 23: Firestore → Report Module (dashed) -->
+  <text x="20" y="915" font-size="9" font-weight="bold">23.</text>
+  <line x1="885" y1="910" x2="1041" y2="910" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="930" y="900" width="90" height="14" fill="white" stroke="none"/>
+  <text x="975" y="911" text-anchor="middle" font-size="9">Return data</text>
+
+  <!-- Step 24: Report Module → Application (dashed) -->
+  <text x="20" y="942" font-size="9" font-weight="bold">24.</text>
+  <line x1="1041" y1="937" x2="559" y2="937" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="730" y="927" width="140" height="14" fill="white" stroke="none"/>
+  <text x="800" y="938" text-anchor="middle" font-size="9">Report generated</text>
+
+  <!-- Step 25: Application → User (dashed) -->
+  <text x="20" y="970" font-size="9" font-weight="bold">25.</text>
+  <line x1="551" y1="965" x2="95" y2="965" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="170" y="955" width="290" height="14" fill="white" stroke="none"/>
+  <text x="315" y="966" text-anchor="middle" font-size="9">Display / Download / Print Report</text>
+
+
+  <!-- ================================================================ -->
+  <!--          PHASE 5 — OFFLINE MODE & SYNCHRONIZATION                -->
+  <!-- ================================================================ -->
+  <rect x="30" y="1005" width="1340" height="22" fill="none" stroke="black" stroke-width="0.5" stroke-dasharray="2,2"/>
+  <text x="700" y="1020" text-anchor="middle" font-size="11" font-weight="bold">5. OFFLINE MODE AND SYNCHRONIZATION PHASE</text>
+
+  <!-- Step 26: Authorized User → Application -->
+  <text x="20" y="1053" font-size="9" font-weight="bold">26.</text>
+  <line x1="95" y1="1048" x2="551" y2="1048" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="220" y="1038" width="230" height="14" fill="white" stroke="none"/>
+  <text x="335" y="1049" text-anchor="middle" font-size="9">Create / Edit Data (Offline)</text>
+
+  <!-- Step 27: Application → IndexedDB -->
+  <text x="20" y="1080" font-size="9" font-weight="bold">27.</text>
+  <line x1="559" y1="1075" x2="1206" y2="1075" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="720" y="1065" width="280" height="14" fill="white" stroke="none"/>
+  <text x="860" y="1076" text-anchor="middle" font-size="9">Save / Queue Data in IndexedDB (Offline)</text>
+
+  <!-- Condition box: "When connection is restored" -->
+  <rect x="560" y="1100" width="165" height="20" fill="none" stroke="black" stroke-width="1" stroke-dasharray="3,2" rx="3"/>
+  <text x="642" y="1114" text-anchor="middle" font-size="9" font-weight="bold">« When connection is restored »</text>
+
+  <!-- Step 28: IndexedDB → Application (then Application → Firestore) -->
+  <text x="20" y="1143" font-size="9" font-weight="bold">28.</text>
+  <line x1="1206" y1="1138" x2="559" y2="1138" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="820" y="1128" width="140" height="14" fill="white" stroke="none"/>
+  <text x="890" y="1139" text-anchor="middle" font-size="9">Sync queued data</text>
+
+  <!-- 28b: Application → Firestore -->
+  <line x1="559" y1="1158" x2="881" y2="1158" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="660" y="1148" width="120" height="14" fill="white" stroke="none"/>
+  <text x="720" y="1159" text-anchor="middle" font-size="9">Sync queued data</text>
+  <text x="559" y="1175" text-anchor="middle" font-size="8" font-style="italic">[Application manages sync]</text>
+
+  <!-- Step 29: Firestore → Application (dashed) -->
+  <text x="20" y="1200" font-size="9" font-weight="bold">29.</text>
+  <line x1="881" y1="1195" x2="559" y2="1195" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="630" y="1185" width="180" height="14" fill="white" stroke="none"/>
+  <text x="720" y="1196" text-anchor="middle" font-size="9">Sync result (Success / Failure)</text>
+
+  <!-- Step 30a: Application → IndexedDB -->
+  <text x="20" y="1227" font-size="9" font-weight="bold">30.</text>
+  <line x1="559" y1="1222" x2="1206" y2="1222" stroke="black" stroke-width="1" marker-end="url(#arrow)"/>
+  <rect x="720" y="1212" width="290" height="14" fill="white" stroke="none"/>
+  <text x="865" y="1223" text-anchor="middle" font-size="9">Update local data / Clear synchronized queue</text>
+
+  <!-- Step 30b: Application → User (dashed) -->
+  <line x1="551" y1="1248" x2="95" y2="1248" stroke="black" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <rect x="210" y="1238" width="230" height="14" fill="white" stroke="none"/>
+  <text x="325" y="1249" text-anchor="middle" font-size="9">Synchronization complete</text>
+
+  <!-- Critical rule note -->
+  <rect x="560" y="1260" width="340" height="26" fill="none" stroke="black" stroke-width="0.8" rx="2"/>
+  <text x="730" y="1272" text-anchor="middle" font-size="8" font-weight="bold">⚠ IndexedDB does NOT communicate directly with Firestore.</text>
+  <text x="730" y="1282" text-anchor="middle" font-size="8">The Application manages all synchronization.</text>
+
+
+  <!-- ==================== LEGEND ==================== -->
+  <line x1="30" y1="1320" x2="1370" y2="1320" stroke="black" stroke-width="0.5"/>
+  <text x="700" y="1340" text-anchor="middle" font-size="11" font-weight="bold">LEGEND</text>
+
+  <!-- Solid arrow -->
+  <line x1="60" y1="1360" x2="120" y2="1360" stroke="black" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="130" y="1364" font-size="9">Solid Arrow = Request / Action</text>
+
+  <!-- Dashed arrow -->
+  <line x1="60" y1="1380" x2="120" y2="1380" stroke="black" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="130" y="1384" font-size="9">Dashed Arrow = Response / Return</text>
+
+  <!-- Abbreviations box -->
+  <rect x="500" y="1345" width="280" height="48" fill="none" stroke="black" stroke-width="1" rx="3"/>
+  <text x="640" y="1360" text-anchor="middle" font-size="9" font-weight="bold">ABBREVIATIONS</text>
+  <text x="510" y="1374" font-size="8">ICS – Inventory Custodian Slip</text>
+  <text x="510" y="1386" font-size="8">PAR – Property Acknowledgment Receipt | ITR – Inventory Transaction Report</text>
+
+  <!-- Note box -->
+  <rect x="850" y="1345" width="310" height="48" fill="none" stroke="black" stroke-width="1" rx="3"/>
+  <text x="1005" y="1360" text-anchor="middle" font-size="9" font-weight="bold">NOTES</text>
+  <text x="860" y="1374" font-size="8">• Firebase Authentication is used ONLY for login (Steps 2–3).</text>
+  <text x="860" y="1386" font-size="8">• All three users (Admin, Office Head, Accounting) can authenticate.</text>
+  <text x="860" y="1396" font-size="8">• Office Head is responsible for requisition approval (Steps 14–15).</text>
+
+</svg>
+
+<p class="caption">Figure 8. Sequence Diagram showing the complete system workflow across five phases: Authentication, Inventory Management, Requisition Workflow, Report Generation, and Offline Mode &amp; Synchronization. The three user roles (Administrator, Office Head, and Accounting) interact with the Application, Firebase Authentication, Firestore, Report Module, and IndexedDB.</p>
+
+</body>
+</html>

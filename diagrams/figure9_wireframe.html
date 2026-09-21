@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Figure 9 - Wireframe</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 15px; background: white; }
+  h3 { text-align: center; font-size: 13px; margin-bottom: 4px; }
+  h4 { font-size: 11px; margin: 12px 0 6px 0; padding: 4px 8px; background: #2c3e50; color: white; border-radius: 3px; text-align: center; }
+  .caption { font-size: 11px; color: #555; text-align: center; font-style: italic; margin-top: 10px; max-width: 860px; margin-left: auto; margin-right: auto; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 860px; margin: 0 auto 10px auto; }
+  .screen { border: 1.5px solid #333; border-radius: 4px; height: 160px; overflow: hidden; position: relative; background: white; }
+  .screen-header { background: #2c3e50; color: white; padding: 3px 6px; font-size: 8px; font-weight: bold; display: flex; justify-content: space-between; }
+  .screen-body { padding: 4px; }
+  .screen-label { font-size: 9px; font-weight: bold; text-align: center; margin-top: 2px; color: #333; }
+  .sidebar { width: 25%; background: #34495e; height: 100%; float: left; padding: 3px; }
+  .sidebar-item { color: #bdc3c7; font-size: 7px; padding: 2px 3px; margin-bottom: 1px; border-radius: 2px; }
+  .sidebar-item.active { background: #3498db; color: white; }
+  .content { float: right; width: 75%; padding: 3px; }
+  .table-header { background: #ecf0f1; font-size: 7px; padding: 2px; font-weight: bold; display: flex; }
+  .table-header div { flex: 1; }
+  .table-row { font-size: 7px; padding: 1px 2px; border-bottom: 1px solid #eee; display: flex; }
+  .table-row div { flex: 1; }
+  .stat-box { background: #ecf0f1; border-radius: 3px; padding: 3px; text-align: center; margin-bottom: 2px; }
+  .stat-number { font-size: 12px; font-weight: bold; color: #2c3e50; }
+  .stat-label { font-size: 7px; color: #7f8c8d; }
+  .btn { background: #3498db; color: white; font-size: 7px; padding: 2px 6px; border-radius: 2px; display: inline-block; margin: 1px; }
+  .btn-green { background: #27ae60; }
+  .btn-orange { background: #e67e22; }
+  .btn-red { background: #e74c3c; }
+  .btn-dark { background: #2c3e50; }
+  .input { border: 1px solid #bdc3c7; border-radius: 2px; padding: 1px 3px; font-size: 7px; width: 80%; margin: 1px 0; display: block; }
+  .form-group { margin-bottom: 2px; }
+  .form-label { font-size: 7px; color: #7f8c8d; }
+  .badge { background: #f39c12; color: white; font-size: 7px; padding: 1px 4px; border-radius: 3px; }
+  .badge-green { background: #27ae60; }
+  .badge-red { background: #e74c3c; }
+  .badge-blue { background: #3498db; }
+</style>
+</head>
+<body>
+
+<h3>Figure 9. Wireframe of the Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<!-- ============================================ -->
+<!-- SHARED SCREENS -->
+<!-- ============================================ -->
+<h4>SHARED SCREENS — All Users</h4>
+<div class="grid">
+
+  <!-- 1. Login -->
+  <div class="screen">
+    <div class="screen-header"><span>LGU TIBIAO — Login</span></div>
+    <div class="screen-body" style="display:flex; align-items:center; justify-content:center; height:100%; flex-direction:column;">
+      <div style="font-size:10px; font-weight:bold; color:#2c3e50; margin-bottom:6px;">🏛️ LGU TIBIAO</div>
+      <div style="font-size:7px; color:#7f8c8d; margin-bottom:4px;">Centralized Inventory &amp; Resource Tracking</div>
+      <input class="input" placeholder="Email address" style="width:70%; margin-bottom:3px;">
+      <input class="input" placeholder="Password" type="password" style="width:70%; margin-bottom:4px;">
+      <div class="btn" style="width:72%; text-align:center;">Sign In</div>
+      <div style="font-size:6px; color:#3498db; margin-top:3px; cursor:pointer;">Forgot password?</div>
+    </div>
+    <div class="screen-label">1. Login Page</div>
+  </div>
+
+  <!-- 2. Notifications -->
+  <div class="screen">
+    <div class="screen-header"><span>Notifications</span><span style="font-size:7px">🔔 3 New</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item active">🔔 Notifications</div>
+        <div class="sidebar-item">👤 Profile</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; margin-bottom:3px;">Notification History</div>
+        <div style="padding:3px; background:#fff3cd; border-radius:2px; margin-bottom:2px; font-size:7px;">
+          <strong>⚠️ Pending Approval:</strong> Req #45 from Engineering
+        </div>
+        <div style="padding:3px; background:#d4edda; border-radius:2px; margin-bottom:2px; font-size:7px;">
+          <strong>✅ Approved:</strong> Req #44 has been approved
+        </div>
+        <div style="padding:3px; background:#d4edda; border-radius:2px; margin-bottom:2px; font-size:7px;">
+          <strong>📦 Delivered:</strong> Procurement #41 received
+        </div>
+        <div style="padding:3px; background:#f8d7da; border-radius:2px; font-size:7px;">
+          <strong>❌ Declined:</strong> Req #42 — insufficient budget
+        </div>
+      </div>
+    </div>
+    <div class="screen-label">2. Notification History</div>
+  </div>
+
+  <!-- 3. User Profile -->
+  <div class="screen">
+    <div class="screen-header"><span>User Profile</span><span style="font-size:7px">👤 All Users</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item">🔔 Notifications</div>
+        <div class="sidebar-item active">👤 Profile</div>
+      </div>
+      <div class="content">
+        <div style="text-align:center; margin-bottom:3px;">
+          <div style="width:22px; height:22px; background:#3498db; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; color:white; font-size:9px;">👤</div>
+          <div style="font-size:9px; font-weight:bold;">Juan Dela Cruz</div>
+          <div style="font-size:7px; color:#7f8c8d;">Administrator</div>
+        </div>
+        <div class="form-group"><div class="form-label">Email</div><input class="input" value="admin@lgu-tibiao.gov"></div>
+        <div class="form-group"><div class="form-label">Office</div><input class="input" value="Municipal Mayor"></div>
+        <div class="form-group"><div class="form-label">Role</div><input class="input" value="Administrator" disabled></div>
+        <div><div class="btn btn-blue" style="font-size:6px;">Update Profile</div><div class="btn" style="font-size:6px; background:transparent; border:1px solid #bdc3c7; color:#333;">Change Password</div></div>
+      </div>
+    </div>
+    <div class="screen-label">3. User Profile</div>
+  </div>
+
+  <!-- 4. Reports (All Roles) -->
+  <div class="screen">
+    <div class="screen-header"><span>Reports</span><span style="font-size:7px">📋 All Roles</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item">📦 Inventory</div>
+        <div class="sidebar-item active">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; margin-bottom:3px;">Official Reports</div>
+        <div class="table-row"><div>📊 Appendix 73</div><div style="font-size:6px; color:#7f8c8d;">Physical Count</div><div><div class="btn btn-dark" style="font-size:6px;">Generate</div></div></div>
+        <div class="table-row"><div>📋 ICS</div><div style="font-size:6px; color:#7f8c8d;">Custodian Slip</div><div><div class="btn btn-dark" style="font-size:6px;">Generate</div></div></div>
+        <div class="table-row"><div>📋 PAR</div><div style="font-size:6px; color:#7f8c8d;">Ack. Receipt</div><div><div class="btn btn-dark" style="font-size:6px;">Generate</div></div></div>
+        <div class="table-row"><div>📋 ITR</div><div style="font-size:6px; color:#7f8c8d;">Transfer Report</div><div><div class="btn btn-dark" style="font-size:6px;">Generate</div></div></div>
+        <div class="table-row"><div>📊 Stock Cards</div><div><div class="btn btn-dark" style="font-size:6px;">Generate</div></div></div>
+      </div>
+    </div>
+    <div class="screen-label">4. Report Generation</div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- ADMIN WORKFLOW -->
+<!-- ============================================ -->
+<h4>ADMINISTRATOR WORKFLOW</h4>
+<div class="grid">
+
+  <!-- 5. Admin Dashboard -->
+  <div class="screen">
+    <div class="screen-header"><span>Admin Dashboard</span><span style="font-size:7px">👑 Administrator</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item active">📊 Dashboard</div>
+        <div class="sidebar-item">👥 Users</div>
+        <div class="sidebar-item">🏢 Offices</div>
+        <div class="sidebar-item">📦 Inventory</div>
+        <div class="sidebar-item">📋 Reports</div>
+        <div class="sidebar-item">🏷️ QR Stickers</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+        <div class="sidebar-item">🛒 Procurement</div>
+        <div class="sidebar-item">📜 Audit Log</div>
+        <div class="sidebar-item">💾 Database</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; margin-bottom:3px;">System Overview</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+          <div class="stat-box"><div class="stat-number" style="font-size:10px;">1,247</div><div class="stat-label">Total Assets</div></div>
+          <div class="stat-box"><div class="stat-number" style="font-size:10px;">12</div><div class="stat-label">Offices</div></div>
+          <div class="stat-box"><div class="stat-number" style="font-size:10px; color:#e67e22;">5</div><div class="stat-label">Pending Req.</div></div>
+          <div class="stat-box"><div class="stat-number" style="font-size:10px;">89</div><div class="stat-label">Users</div></div>
+        </div>
+        <div style="font-size:7px; margin-top:3px; color:#7f8c8d;">Recent Activity:</div>
+        <div class="table-row"><div>Item added — Office Chair</div><div style="text-align:right">2m ago</div></div>
+        <div class="table-row"><div>Req #42 approved</div><div style="text-align:right">15m ago</div></div>
+      </div>
+    </div>
+    <div class="screen-label">5. Admin Dashboard</div>
+  </div>
+
+  <!-- 6. User Management (Admin Only) -->
+  <div class="screen">
+    <div class="screen-header"><span>User Management</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item active">👥 Users</div>
+        <div class="sidebar-item">🏢 Offices</div>
+        <div class="sidebar-item">📜 Audit Log</div>
+      </div>
+      <div class="content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+          <input class="input" placeholder="Search users..." style="width:50%;">
+          <div class="btn btn-green" style="font-size:6px;">+ Add User</div>
+        </div>
+        <div class="table-header"><div>Name</div><div>Role</div><div>Status</div><div></div></div>
+        <div class="table-row"><div>J. Santos</div><div><span class="badge-blue badge">Admin</span></div><div><span class="badge-green badge">Active</span></div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>M. Cruz</div><div><span class="badge" style="background:#27ae60;">Office Head</span></div><div><span class="badge-green badge">Active</span></div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>L. Bautista</div><div><span class="badge" style="background:#c0392b;">Accountant</span></div><div><span class="badge-green badge">Active</span></div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>R. Dela Cruz</div><div><span class="badge" style="background:#27ae60;">Office Head</span></div><div><span class="badge">Inactive</span></div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+      </div>
+    </div>
+    <div class="screen-label">6. User Management</div>
+  </div>
+
+  <!-- 7. Office Management (Admin Only) -->
+  <div class="screen">
+    <div class="screen-header"><span>Office Management</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item">👥 Users</div>
+        <div class="sidebar-item active">🏢 Offices</div>
+        <div class="sidebar-item">📦 Inventory</div>
+      </div>
+      <div class="content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+          <input class="input" placeholder="Search offices..." style="width:50%;">
+          <div class="btn btn-green" style="font-size:6px;">+ Add Office</div>
+        </div>
+        <div class="table-header"><div>Office</div><div>Items</div><div>Head</div><div></div></div>
+        <div class="table-row"><div>Municipal Mayor</div><div>42</div><div>J. Santos</div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>Engineering</div><div>86</div><div>M. Cruz</div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>Treasury</div><div>31</div><div>A. Reyes</div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>Accounting</div><div>55</div><div>L. Bautista</div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+        <div class="table-row"><div>Planning</div><div>28</div><div>R. Dela Cruz</div><div style="font-size:6px; color:#3498db;">Edit</div></div>
+      </div>
+    </div>
+    <div class="screen-label">7. Office Management</div>
+  </div>
+
+  <!-- 8. Inventory Management (Admin) -->
+  <div class="screen">
+    <div class="screen-header"><span>Inventory Management</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item active">📦 Inventory</div>
+        <div class="sidebar-item">🏷️ QR Stickers</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+      </div>
+      <div class="content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+          <input class="input" placeholder="Search items..." style="width:50%;">
+          <div class="btn btn-green" style="font-size:6px;">+ Add Item</div>
+        </div>
+        <div style="font-size:6px; color:#7f8c8d; margin-bottom:2px;">Filter: [All Offices ▼] [All Categories ▼] [All Status ▼]</div>
+        <div class="table-header"><div>Property No.</div><div>Item</div><div>Office</div><div>Qty</div><div>Condition</div></div>
+        <div class="table-row"><div>PR-001</div><div>Office Chair</div><div>Engineering</div><div>25</div><div><span class="badge-green badge">Good</span></div></div>
+        <div class="table-row"><div>PR-002</div><div>Desktop PC</div><div>Accounting</div><div>12</div><div><span class="badge-green badge">Good</span></div></div>
+        <div class="table-row"><div>PR-003</div><div>Printer</div><div>Treasury</div><div>5</div><div><span class="badge">Fair</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">8. Inventory Management</div>
+  </div>
+
+  <!-- 9. QR Stickers (Admin) -->
+  <div class="screen">
+    <div class="screen-header"><span>QR Stickers</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item">📦 Inventory</div>
+        <div class="sidebar-item active">🏷️ QR Stickers</div>
+      </div>
+      <div class="content" style="text-align:center;">
+        <div style="font-size:8px; font-weight:bold; margin-bottom:3px;">QR-Based Property Stickers</div>
+        <input class="input" placeholder="Search by property no. or item..." style="width:80%; margin: 0 auto 4px auto;">
+        <div style="display:flex; gap:3px; justify-content:center; flex-wrap:wrap;">
+          <div style="border:1px solid #333; padding:3px; text-align:center; width:30%;">
+            <div style="font-size:12px;">⬛⬛⬛</div>
+            <div style="font-size:5px; font-weight:bold;">PR-2024-001</div>
+            <div style="font-size:5px;">Office Chair</div>
+            <div style="font-size:5px; color:#7f8c8d;">Engineering</div>
+          </div>
+          <div style="border:1px solid #333; padding:3px; text-align:center; width:30%;">
+            <div style="font-size:12px;">⬛⬛⬛</div>
+            <div style="font-size:5px; font-weight:bold;">PR-2024-002</div>
+            <div style="font-size:5px;">Desktop PC</div>
+            <div style="font-size:5px; color:#7f8c8d;">Accounting</div>
+          </div>
+          <div style="border:1px solid #333; padding:3px; text-align:center; width:30%;">
+            <div style="font-size:12px;">⬛⬛⬛</div>
+            <div style="font-size:5px; font-weight:bold;">PR-2024-003</div>
+            <div style="font-size:5px;">Printer</div>
+            <div style="font-size:5px; color:#7f8c8d;">Treasury</div>
+          </div>
+        </div>
+        <div class="btn btn-green" style="margin-top:3px; font-size:6px;">🖨️ Print Selected</div>
+      </div>
+    </div>
+    <div class="screen-label">9. QR Sticker Generation</div>
+  </div>
+
+  <!-- 10. Requisitions — Admin View -->
+  <div class="screen">
+    <div class="screen-header"><span>Requisitions</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item active">📝 Requisitions</div>
+        <div class="sidebar-item">🛒 Procurement</div>
+      </div>
+      <div class="content">
+        <div style="display:flex; gap:3px; margin-bottom:3px;">
+          <div class="btn" style="font-size:6px;">All (15)</div>
+          <div class="btn btn-orange" style="font-size:6px;">Pending (5)</div>
+          <div class="btn btn-green" style="font-size:6px;">Approved (7)</div>
+          <div class="btn btn-red" style="font-size:6px;">Declined (3)</div>
+        </div>
+        <div class="table-header"><div>Req #</div><div>From</div><div>Items</div><div>Date</div><div>Status</div><div>Action</div></div>
+        <div class="table-row"><div>#45</div><div>Engineering</div><div>Laptop (2)</div><div>Sep 1</div><div><span class="badge">Pending</span></div><div style="font-size:6px;"><span style="color:#27ae60;">✓</span> <span style="color:#e74c3c;">✗</span></div></div>
+        <div class="table-row"><div>#44</div><div>Treasury</div><div>Printer (1)</div><div>Aug 30</div><div><span class="badge-green badge">Approved</span></div><div style="font-size:6px;">View</div></div>
+        <div class="table-row"><div>#43</div><div>Planning</div><div>Filing Cab. (3)</div><div>Aug 28</div><div><span class="badge-green badge">Approved</span></div><div style="font-size:6px;">View</div></div>
+        <div class="table-row"><div>#42</div><div>Accounting</div><div>Scanner (1)</div><div>Aug 25</div><div><span class="badge-red badge">Declined</span></div><div style="font-size:6px;">View</div></div>
+      </div>
+    </div>
+    <div class="screen-label">10. Requisitions Manager</div>
+  </div>
+
+  <!-- 11. Audit Trail (Admin Only) -->
+  <div class="screen">
+    <div class="screen-header"><span>Audit Trail</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item active">📜 Audit Log</div>
+        <div class="sidebar-item">💾 Database</div>
+      </div>
+      <div class="content">
+        <input class="input" placeholder="Filter by user, date, action..." style="width:80%; margin-bottom:3px;">
+        <div class="table-header"><div>Timestamp</div><div>User</div><div>Action</div><div>Details</div></div>
+        <div class="table-row"><div>Sep 1, 10:32</div><div>admin@lgu</div><div>Updated item</div><div>Office Chair qty</div></div>
+        <div class="table-row"><div>Sep 1, 10:15</div><div>accountant@</div><div>Added item</div><div>Scanner → Eng.</div></div>
+        <div class="table-row"><div>Sep 1, 09:48</div><div>office@lgu</div><div>Submitted req</div><div>Req #45</div></div>
+        <div class="table-row"><div>Sep 1, 09:30</div><div>admin@lgu</div><div>Approved user</div><div>accounting@</div></div>
+        <div class="table-row"><div>Sep 1, 09:12</div><div>accounting@</div><div>Declined req</div><div>Req #42 budget</div></div>
+      </div>
+    </div>
+    <div class="screen-label">11. Audit Trail View</div>
+  </div>
+
+  <!-- 12. Cloud Database (Admin Only) -->
+  <div class="screen">
+    <div class="screen-header"><span>Cloud Database</span><span style="font-size:7px">👑 Admin</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Dashboard</div>
+        <div class="sidebar-item">📜 Audit Log</div>
+        <div class="sidebar-item active">💾 Database</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; margin-bottom:3px;">Cloud Database Status</div>
+        <div class="stat-box" style="margin-bottom:3px;"><div class="stat-number" style="font-size:10px; color:#27ae60;">🟢 Connected</div><div class="stat-label">Firebase Firestore — Real-time sync active</div></div>
+        <div style="font-size:7px; color:#7f8c8d; margin-bottom:2px;">Database Collections:</div>
+        <div class="table-header"><div>Collection</div><div>Documents</div><div>Status</div></div>
+        <div class="table-row"><div>users</div><div>89 docs</div><div><span class="badge-green badge" style="font-size:6px;">Synced</span></div></div>
+        <div class="table-row"><div>items</div><div>1,247 docs</div><div><span class="badge-green badge" style="font-size:6px;">Synced</span></div></div>
+        <div class="table-row"><div>offices</div><div>12 docs</div><div><span class="badge-green badge" style="font-size:6px;">Synced</span></div></div>
+        <div class="table-row"><div>requisitions</div><div>45 docs</div><div><span class="badge-green badge" style="font-size:6px;">Synced</span></div></div>
+        <div class="table-row"><div>logs</div><div>3,210 docs</div><div><span class="badge-green badge" style="font-size:6px;">Synced</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">12. Cloud Database</div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- OFFICE HEAD WORKFLOW -->
+<!-- ============================================ -->
+<h4>OFFICE HEAD WORKFLOW</h4>
+<div class="grid">
+
+  <!-- 13. Office Head Dashboard -->
+  <div class="screen">
+    <div class="screen-header"><span>Office Dashboard</span><span style="font-size:7px">🏢 Office Head</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item active">📊 Overview</div>
+        <div class="sidebar-item">📦 My Assets</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#27ae60; margin-bottom:3px;">Engineering Office</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+          <div class="stat-box"><div class="stat-number" style="font-size:10px; color:#27ae60;">86</div><div class="stat-label">Office Assets</div></div>
+          <div class="stat-box"><div class="stat-number" style="font-size:10px; color:#e67e22;">2</div><div class="stat-label">Pending Req.</div></div>
+        </div>
+        <div style="font-size:7px; margin-top:3px; color:#7f8c8d;">Recent Requisitions:</div>
+        <div class="table-row"><div>Laptop — pending</div><div><span class="badge">Pending</span></div></div>
+        <div class="table-row"><div>Printer — approved</div><div><span class="badge-green badge">Approved</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">13. Office Head Dashboard</div>
+  </div>
+
+  <!-- 14. My Office Assets (Office Head) -->
+  <div class="screen">
+    <div class="screen-header"><span>My Office Assets</span><span style="font-size:7px">🏢 Office Head</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Overview</div>
+        <div class="sidebar-item active">📦 My Assets</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#27ae60; margin-bottom:3px;">Engineering Office — Assets (86 items)</div>
+        <input class="input" placeholder="Search assets..." style="width:80%; margin-bottom:3px;">
+        <div class="table-header"><div>Property No.</div><div>Item</div><div>Qty</div><div>Condition</div></div>
+        <div class="table-row"><div>PR-2024-001</div><div>Office Chair</div><div>25</div><div><span class="badge-green badge">Good</span></div></div>
+        <div class="table-row"><div>PR-2024-004</div><div>Desktop PC</div><div>15</div><div><span class="badge-green badge">Good</span></div></div>
+        <div class="table-row"><div>PR-2024-007</div><div>Printer</div><div>3</div><div><span class="badge">Fair</span></div></div>
+        <div class="table-row"><div>PR-2024-011</div><div>Projector</div><div>2</div><div><span class="badge-red badge">Poor</span></div></div>
+        <div class="table-row"><div>PR-2024-015</div><div>Filing Cabinet</div><div>8</div><div><span class="badge-green badge">Good</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">14. Office Head — My Assets</div>
+  </div>
+
+  <!-- 15. Submit Requisition (Office Head) -->
+  <div class="screen">
+    <div class="screen-header"><span>Submit Requisition</span><span style="font-size:7px">🏢 Office Head</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Overview</div>
+        <div class="sidebar-item">📦 My Assets</div>
+        <div class="sidebar-item active">📝 Requisitions</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#27ae60; margin-bottom:3px;">New Requisition Form</div>
+        <div class="form-group"><div class="form-label">Office</div><input class="input" value="Engineering Office" disabled></div>
+        <div class="form-group"><div class="form-label">Item Name</div><input class="input" placeholder="e.g. Laptop"></div>
+        <div style="display:flex; gap:4px;">
+          <div class="form-group" style="flex:1;"><div class="form-label">Quantity</div><input class="input" placeholder="1" style="width:90%;"></div>
+          <div class="form-group" style="flex:1;"><div class="form-label">Purpose</div><input class="input" placeholder="Official use" style="width:90%;"></div>
+        </div>
+        <div class="form-group"><div class="form-label">Remarks</div><input class="input" placeholder="Additional notes..."></div>
+        <div><div class="btn btn-green" style="font-size:6px;">Submit Requisition</div><div class="btn" style="font-size:6px; background:#7f8c8d;">Cancel</div></div>
+      </div>
+    </div>
+    <div class="screen-label">15. Office Head — Submit Requisition</div>
+  </div>
+
+  <!-- 16. Requisition History (Office Head) -->
+  <div class="screen">
+    <div class="screen-header"><span>My Requisitions</span><span style="font-size:7px">🏢 Office Head</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Overview</div>
+        <div class="sidebar-item">📦 My Assets</div>
+        <div class="sidebar-item active">📝 Requisitions</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#27ae60; margin-bottom:3px;">Engineering Office — Requisition History</div>
+        <div class="table-header"><div>Req #</div><div>Item</div><div>Qty</div><div>Date</div><div>Status</div></div>
+        <div class="table-row"><div>#45</div><div>Laptop</div><div>2</div><div>Sep 1</div><div><span class="badge">Pending</span></div></div>
+        <div class="table-row"><div>#40</div><div>Printer</div><div>1</div><div>Aug 15</div><div><span class="badge-green badge">Approved</span></div></div>
+        <div class="table-row"><div>#38</div><div>Filing Cabinet</div><div>3</div><div>Aug 5</div><div><span class="badge-green badge">Fulfilled</span></div></div>
+        <div class="table-row"><div>#35</div><div>Scanner</div><div>1</div><div>Jul 20</div><div><span class="badge-red badge">Declined</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">16. Office Head — Requisition History</div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- ACCOUNTANT WORKFLOW -->
+<!-- ============================================ -->
+<h4>ACCOUNTANT WORKFLOW</h4>
+<div class="grid">
+
+  <!-- 17. Accountant Dashboard -->
+  <div class="screen">
+    <div class="screen-header"><span>Accounting Dashboard</span><span style="font-size:7px">💰 Accountant</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item active">📊 Overview</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+        <div class="sidebar-item">🛒 Procurement</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#c0392b; margin-bottom:3px;">Financial Overview</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:2px;">
+          <div class="stat-box"><div class="stat-number" style="font-size:10px; color:#c0392b;">₱1.2M</div><div class="stat-label">Total Procurement</div></div>
+          <div class="stat-box"><div class="stat-number" style="font-size:10px; color:#e67e22;">8</div><div class="stat-label">Awaiting Review</div></div>
+        </div>
+        <div style="font-size:7px; margin-top:3px; color:#7f8c8d;">Awaiting Financial Review:</div>
+        <div class="table-row"><div>Req #44 — ₱45,000</div><div><span class="badge">Review</span></div></div>
+        <div class="table-row"><div>Req #41 — ₱120,000</div><div><span class="badge-green badge">Paid</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">17. Accountant Dashboard</div>
+  </div>
+
+  <!-- 18. Financial Review of Requisitions (Accountant) -->
+  <div class="screen">
+    <div class="screen-header"><span>Financial Review</span><span style="font-size:7px">💰 Accountant</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Overview</div>
+        <div class="sidebar-item active">📝 Requisitions</div>
+        <div class="sidebar-item">🛒 Procurement</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#c0392b; margin-bottom:3px;">Requisitions — Financial Review</div>
+        <div style="display:flex; gap:3px; margin-bottom:3px;">
+          <div class="btn btn-orange" style="font-size:6px;">Pending (8)</div>
+          <div class="btn btn-green" style="font-size:6px;">Approved (12)</div>
+          <div class="btn btn-red" style="font-size:6px;">Declined (5)</div>
+        </div>
+        <div class="table-header"><div>Req #</div><div>Office</div><div>Amount</div><div>Date</div><div>Status</div><div>Action</div></div>
+        <div class="table-row"><div>#44</div><div>Treasury</div><div>₱45,000</div><div>Aug 30</div><div><span class="badge">Review</span></div><div style="font-size:6px;"><span style="color:#27ae60;">✓</span> <span style="color:#e74c3c;">✗</span></div></div>
+        <div class="table-row"><div>#43</div><div>Planning</div><div>₱28,500</div><div>Aug 28</div><div><span class="badge">Review</span></div><div style="font-size:6px;"><span style="color:#27ae60;">✓</span> <span style="color:#e74c3c;">✗</span></div></div>
+        <div class="table-row"><div>#41</div><div>Mayor's</div><div>₱120,000</div><div>Aug 20</div><div><span class="badge-green badge">Paid</span></div><div style="font-size:6px;">View</div></div>
+        <div class="table-row"><div>#39</div><div>Engineering</div><div>₱67,000</div><div>Aug 10</div><div><span class="badge-green badge">Paid</span></div><div style="font-size:6px;">View</div></div>
+      </div>
+    </div>
+    <div class="screen-label">18. Accountant — Financial Review</div>
+  </div>
+
+  <!-- 19. Procurement Tracking (Accountant) -->
+  <div class="screen">
+    <div class="screen-header"><span>Procurement Tracking</span><span style="font-size:7px">💰 Accountant</span></div>
+    <div style="display:flex; height:100%;">
+      <div class="sidebar">
+        <div class="sidebar-item">📊 Overview</div>
+        <div class="sidebar-item">📝 Requisitions</div>
+        <div class="sidebar-item active">🛒 Procurement</div>
+        <div class="sidebar-item">📋 Reports</div>
+      </div>
+      <div class="content">
+        <div style="font-size:8px; font-weight:bold; color:#c0392b; margin-bottom:3px;">Procurement Transactions</div>
+        <div class="table-header"><div>Req #</div><div>Office</div><div>Supplier</div><div>Amount</div><div>Status</div></div>
+        <div class="table-row"><div>#44</div><div>Treasury</div><div>TechSupply</div><div>₱45,000</div><div><span class="badge">In Transit</span></div></div>
+        <div class="table-row"><div>#41</div><div>Mayor's</div><div>OfficeMax</div><div>₱120,000</div><div><span class="badge-green badge">Received</span></div></div>
+        <div class="table-row"><div>#39</div><div>Engineering</div><div>BuildRight</div><div>₱67,000</div><div><span class="badge-green badge">Received</span></div></div>
+        <div class="table-row"><div>#37</div><div>Planning</div><div>TechSupply</div><div>₱32,000</div><div><span class="badge-green badge">Paid</span></div></div>
+      </div>
+    </div>
+    <div class="screen-label">19. Accountant — Procurement Tracking</div>
+  </div>
+
+  <!-- 20. Offline Mode -->
+  <div class="screen">
+    <div class="screen-header"><span>Offline Mode</span><span style="font-size:7px">📴 Any User</span></div>
+    <div style="display:flex; height:100%; flex-direction:column; align-items:center; justify-content:center; padding:8px;">
+      <div style="font-size:18px; margin-bottom:4px;">📴</div>
+      <div style="font-size:8px; font-weight:bold; color:#e67e22; text-align:center;">Offline Mode Active</div>
+      <div style="font-size:7px; color:#7f8c8d; text-align:center; margin:3px 0;">Edits will sync when reconnected</div>
+      <div style="background:#fff3cd; border:1px solid #f39c12; border-radius:3px; padding:4px; font-size:7px; text-align:center; width:90%;">
+        <strong>Queued Edits: 3</strong><br>
+        • Added "Scanner" to Engineering<br>
+        • Updated Chair qty: 25 → 24<br>
+        • Requisition #46 submitted
+      </div>
+      <div class="btn btn-orange" style="margin-top:4px; font-size:7px;">📶 Retry Connection</div>
+    </div>
+    <div class="screen-label">20. Offline Mode</div>
+  </div>
+
+</div>
+
+<p class="caption">Figure 9. Complete wireframe of the Centralized Inventory and Resource Tracking System of LGU Tibiao, showing all screens for each user role — Administrator (full system access: dashboard, user management, office management, inventory, QR stickers, requisitions, audit trail, database), Office Head (office dashboard, view assets, submit requisitions, requisition history), and Accountant (financial dashboard, financial review of requisitions, procurement tracking), along with shared screens accessible to all roles (login, notifications, profile, reports, offline mode).</p>
+
+</body>
+</html>

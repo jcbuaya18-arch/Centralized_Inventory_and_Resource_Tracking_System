@@ -1,0 +1,209 @@
+================================================================================
+CORRECTED SECTIONS — JC New Revised Document (Chapters I–III)
+================================================================================
+Copy-paste each section into the corresponding location in your Word document.
+Search for the "ORIGINAL:" text to find where each replacement goes.
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 1: Scope and Limitations (Chapter I)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: "Scope and Limitations" section in Chapter I.
+REPLACE the entire Scope and Limitations section with the following:
+
+─── BEGIN COPY FROM HERE ───
+
+Scope and Limitations
+
+The scope of the system includes several key processes: verifying user credentials and role-based access to ensure secure access per user responsibility; encoding inventory records for assets and resources to maintain comprehensive information; updating asset quantities, conditions, and accountability records; generating QR-based property stickers for identification; printing official reports such as the Report on the Physical Count of Property, Plant and Equipment (Appendix 73), Inventory Custodian Slip (ICS), Property Acknowledgement Receipt (PAR), and Inventory Transfer Report (ITR); recording audit trails and system activity logs; managing user roles and office assignments; and processing requisition and procurement requests through a centralized workflow. The system also provides specialized dashboards tailored to each user role, including the Administrator, Office Head, and Accounting staff, to ensure that each user views only the information and functions relevant to their responsibilities. Additionally, the system supports offline data entry, where edits made without internet connectivity are queued locally and automatically synchronized once connectivity is restored.
+
+The limitation of the system is that it relies on internet connectivity for full real-time synchronization and cloud-based operations; however, the system includes an offline mode that queues edits locally and syncs them upon reconnection. It will not be integrated with external government databases, accounting systems, or other Local Government Unit platforms. Instead, the system will be specifically tailored for use by LGU Tibiao. Additionally, the processes implemented within this system may differ from those used by other municipalities, making it unique to LGU Tibiao's needs and operational requirements.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 2: Functional Requirements Table 2 (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: Table 2 (Functional Requirements table) in Chapter III.
+REPLACE the entire table content with the following:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 2. Functional Requirements
+
+The functional requirements of the Centralized Inventory and Resource Tracking System of LGU Tibiao define the core features and operations that the system must perform to achieve its intended purpose. As presented in Table 2, these requirements outline the essential functionalities that support user interaction, asset management, inventory monitoring, and data tracking. These functions ensure that the system effectively manages asset records, monitors resource availability, and provides accurate and real-time information for municipal operations.
+
+| FUNCTIONAL REQUIREMENT         | DESCRIPTION                                                                                                                                                                              | USER ROLE                                                     |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
+| User Authentication            | The system shall allow authorized users to log in securely using their credentials and access role-based features.                                                                      | All Users                                                     |
+| User and Role Management       | The system shall allow administrators to add, update, deactivate, and manage user accounts and their roles.                                                                              | Administrator                                                 |
+| Asset / Item Management        | The system shall allow users to add, update, delete, and view asset or item information including item name, category, description, property number, quantity, unit, condition, and status. | Administrator, Supply                                         |
+| Inventory Monitoring           | The system shall allow users to monitor the current quantity, condition, and location of all assets and resources in real time.                                                          | All Users                                                     |
+| Office Management              | The system shall allow administrators to register, update, and manage municipal offices or departments used to classify and assign inventory records.                                     | Administrator                                                 |
+| Resource Tracking              | The system shall allow users to track the movement, usage, and history of assets and resources.                                                                                         | Administrator, Supply, Staff                                  |
+| Reporting                      | The system shall allow users to generate official reports including Appendix 73, ICS, PAR, ITR, Stock Cards, and Supplies Registry.                                                      | Administrator, Office Head, Accounting, Staff                 |
+| QR-Based Property Stickers     | The system shall allow users to generate and print QR-based property stickers for efficient asset identification and tracking.                                                          | Administrator, Supply                                         |
+| Requisitions Management        | The system shall allow users to submit, forward, approve, decline, and track asset requisition and procurement requests through a centralized workflow.                                  | Administrator, Office Head, Supply, Accounting                |
+| Procurement Tracking           | The system shall allow users to record and monitor procurement transactions, including supplier details, delivery dates, and receiving status.                                            | Administrator, Supply, Accounting                             |
+| Search and Filter              | The system shall allow users to search and filter assets or resources based on criteria such as item name, category, location, office, status, and date.                                 | All Users                                                     |
+| Data Export                    | The system shall allow users to export reports and inventory data in various file formats (e.g., PDF, Excel).                                                                            | Administrator, Staff                                          |
+| Notifications                  | The system shall provide alerts and notification history for pending approvals, requisition updates, and transfer requests.                                                               | All Users                                                     |
+| Audit Trail and System Logging | The system shall record and display a chronological log of user activities, inventory modifications, and system events for accountability purposes.                                      | Administrator                                                 |
+| Offline Data Entry             | The system shall allow users to queue inventory edits offline and automatically synchronize data upon reconnection.                                                                      | All Users                                                     |
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 3: Non-Functional Requirements Table 3 (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: Table 3 (Non-Functional Requirements) in Chapter III.
+REPLACE the table content with the following:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 3. Non-Functional Requirements of the System
+
+| CHARACTERISTIC | NON-FUNCTIONAL REQUIREMENTS                                                                                                              |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| Performance    | The system shall process inventory updates and transactions within 3 seconds and support concurrent access by multiple users.             |
+| Security       | The system shall require authentication for all users, implement role-based access control, and protect data from unauthorized access.   |
+| Usability      | The system shall provide a user-friendly and intuitive interface for efficient navigation across all modules and user roles.              |
+| Reliability    | The system shall accurately store, retrieve, and maintain inventory and report data with real-time synchronization via cloud database.     |
+| Availability   | The system shall be accessible via web browser during business operating hours and support offline data entry when connectivity is unavailable. |
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 4: Sprint 3 in Gantt Chart Table 1 (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The Gantt chart table (Table 1) row for Sprint 3.
+The current text for Sprint 3 reads:
+  "Development of Core Modules (Inventory, Stock Monitoring, Sales Tracking, and Reporting)"
+  "Develop the core modules including inventory management, stock monitoring, sales tracking, and reporting features."
+
+REPLACE with:
+
+─── BEGIN COPY FROM HERE ───
+
+Sprint 3:
+  ACTIVITIES: Offices Management
+  DESCRIPTION: Implement the offices management module, including functionalities for organizing and managing offices or departments used to classify and assign inventory records.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 5: Phase 1 Planning Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: "System requirements, including functional and non-functional requirements related to inventory tracking, stock monitoring, and data management"
+
+REPLACE "inventory tracking, stock monitoring, and data management" with:
+
+─── BEGIN COPY FROM HERE ───
+
+inventory tracking, office-based asset management, report generation, and data management
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 6: Software Requirements Table 4 (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: Table 4 (Software Requirements) in Chapter III.
+REPLACE the entire table content with the following:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 4. Software Requirements of the System
+
+| SOFTWARE COMPONENT       | DESCRIPTION                                                                                         | PURPOSE                                                                                  |
+|--------------------------|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| Development Platform     | Visual Studio Code or similar Integrated Development Environment (IDE)                             | Used for designing, coding, and testing the system.                                      |
+| Programming Language     | TypeScript, JavaScript                                                                              | Used to develop system functionalities and logic.                                        |
+| Front-End Framework      | React (with Vite as build tool)                                                                     | Used for developing the user interface and front-end design.                             |
+| Styling Framework        | Tailwind CSS                                                                                        | Used for responsive and utility-first styling of the user interface.                     |
+| Animation Library        | Framer Motion (motion)                                                                              | Used for page transitions and interactive UI animations.                                 |
+| Operating System         | Windows Operating System (latest version)                                                           | Provides the runtime environment for system development and execution.                   |
+| Database Management      | Firebase Firestore (cloud-based NoSQL database)                                                     | Stores and manages asset, inventory, and system data in real time with offline support.  |
+| Authentication           | Firebase Authentication                                                                             | Handles secure user login, session management, and role-based access control.            |
+| Server Environment       | Node.js with Express.js (custom backend server)                                                     | Handles file uploads, API routing, and server-side processing.                           |
+| File Upload              | Multer (multipart form data handling)                                                               | Used for processing image uploads for item profiles and documentation.                   |
+| QR Code Generation       | qrcode.react                                                                                        | Used for generating QR-based property stickers for asset identification.                 |
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 7: Respondents Table 7 and Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The respondents table area and the paragraph that mentions "JMIXX Arts Inventory Management System."
+
+PART A — Replace the table with:
+
+─── BEGIN COPY FROM HERE ───
+
+| RESPONDENTS                      | f  | PERCENTAGE (%) |
+|----------------------------------|----|----------------|
+| Administrator / Office Head      | 5  | 16.67%         |
+| Staff / Operational Users        | 10 | 33.33%         |
+| IT Experts                       | 15 | 50.00%         |
+| TOTAL                            | 30 | 100%           |
+
+Table 7. Profile of the Respondents by Category
+
+─── END COPY TO HERE ───
+
+PART B — Replace the paragraph describing Table 7 with:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 7 shows the distribution of respondents involved in the study, composed of the Administrator/Office Head, operational staff, and IT experts. IT experts comprise the majority of the respondents as they provide technical evaluation of the system's design, functionality, and performance. Operational staff contribute by assessing the system's usability and effectiveness in supporting inventory management and asset tracking operations. The Administrator/Office Head, as the primary user of the system, evaluates its overall functionality, efficiency, and practicality in real-world municipal use. The total of 30 respondents ensures sufficient data for a reliable evaluation of the Centralized Inventory and Resource Tracking System of LGU Tibiao.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 8: Table 7 Description Mentioning "Sales Operations" (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: "assessing the system's usability and effectiveness in supporting inventory and sales operations"
+
+REPLACE with:
+
+─── BEGIN COPY FROM HERE ───
+
+assessing the system's usability and effectiveness in supporting inventory management and asset tracking operations
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 9: Sprint Descriptions Overview (Chapter III) — Consistency Fix
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The Sprint overview paragraph that reads:
+"The system was designed to store inventory data in real time and generate reports that can be accessed by authorized users."
+
+REPLACE the sprint overview paragraph (before Sprint 1) with:
+
+─── BEGIN COPY FROM HERE ───
+
+Throughout the sprint cycles, continuous testing and debugging were conducted to identify and resolve issues. Feedback from testing activities was used to refine system functionalities, improve system performance, and enhance user experience. Minor adjustments to the user interface were also implemented to ensure usability, consistency, and accessibility across all system modules.
+
+─── END COPY TO HERE ───
+
+
+================================================================================
+END OF CORRECTED SECTIONS
+================================================================================

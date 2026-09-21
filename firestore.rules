@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isWhitelisted() {
+      return isSignedIn() && 
+             (
+               (request.auth.token != null && 'email' in request.auth.token && (
+                 request.auth.token.email == "jocelynmanzan1962@gmail.com" ||
+                 request.auth.token.email == "ravenlangote08@gmail.com" ||
+                 request.auth.token.email == "jcbuaya18@gmail.com" ||
+                 request.auth.token.email == "jc@gmail.com" ||
+                 request.auth.token.email == "meccaellaelumba@gmail.com" ||
+                 request.auth.token.email == "Meccaellaelumba@gmail.com" ||
+                 request.auth.token.email == "Jocelynmanzan1962@gmail.com" ||
+                 request.auth.token.email == "Ravenlangote08@gmail.com" ||
+                 request.auth.token.email == "Jcbuaya18@gmail.com" ||
+                 request.auth.token.email == "Jc@gmail.com"
+               )) ||
+               request.auth.uid == "h5ErNnxZiBcaIN68a9nxeN6Yw1K3" || 
+               request.auth.uid == "4C1q90dyhpdfanyE4CfO9wBNgCo1"
+             );
+    }
+
+    function isAuthorized() {
+      return !isSignedIn() || 
+             isWhitelisted() || 
+             !exists(/databases/$(database)/documents/users/$(request.auth.uid)) || 
+             !('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != "UNAUTHORIZED";
+    }
+
+    function isAdmin() {
+      return !isSignedIn() || 
+             isWhitelisted() || (
+               exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+               ('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) &&
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN"
+             );
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /offices/{officeId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /departments/{deptId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /inventory_items/{itemId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /forms/{formId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /stock_cards/{itemId} {
+      allow get, list, create, update, delete: if isAuthorized();
+
+      match /transactions/{transactionId} {
+        allow get, list, create, update, delete: if isAuthorized();
+      }
+    }
+
+    match /acceptance/{acceptanceId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /system_logs/{logId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /access_logs/{logId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /reports/{reportId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /receiving_requests/{requestId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /requests/{requestId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /accountant_requests/{requestId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /notifications/{notificationId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /procurement_transactions/{txId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /inventory_transactions/{txId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /master_assets/{masterId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /rpcppes/{rpcppeId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /receiving_history/{historyId} {
+      allow get, list, create, update, delete: if isAuthorized();
+    }
+
+    match /users/{userId} {
+      allow get, list, create, update, delete: if isAuthorized() || !isSignedIn();
+    }
+
+    match /system_settings/{docId} {
+      allow get, list, create, update, delete: if isAuthorized() || !isSignedIn();
+    }
+
+    match /image_metadata/{imageId} {
+      allow get, list, create, update, delete: if isAuthorized() || !isSignedIn();
+    }
+
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Table 1 - Gantt Chart</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; }
+  h3 { text-align: center; font-size: 14px; margin-bottom: 5px; }
+  p.caption { text-align: center; font-size: 12px; font-style: italic; margin-top: 5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 11px; }
+  th, td { border: 1px solid #333; padding: 6px 8px; text-align: center; vertical-align: middle; }
+  th { background: #2c3e50; color: white; font-weight: bold; }
+  .sprint-label { text-align: left; font-weight: bold; background: #ecf0f1; width: 25%; }
+  .activity { text-align: left; width: 20%; }
+  .desc { text-align: left; width: 30%; font-size: 10px; }
+  .bar { background: #3498db; border-radius: 3px; height: 18px; }
+  .bar2 { background: #2ecc71; }
+  .bar3 { background: #e74c3c; }
+  .bar4 { background: #f39c12; }
+  .bar5 { background: #9b59b6; }
+  .filled { background: #d5e8f0; }
+  .week-header { font-weight: bold; font-size: 10px; width: 3%; }
+</style>
+</head>
+<body>
+
+<h3>Table 1. Time Table of Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:5%">Sprint</th>
+      <th style="width:15%">Activities</th>
+      <th style="width:25%">Description</th>
+      <th colspan="11" style="background:#1a252f">Weeks</th>
+    </tr>
+    <tr>
+      <th></th><th></th><th></th>
+      <th class="week-header">1</th><th class="week-header">2</th>
+      <th class="week-header">3</th><th class="week-header">4</th>
+      <th class="week-header">5</th><th class="week-header">6</th>
+      <th class="week-header">7</th><th class="week-header">8</th>
+      <th class="week-header">9</th><th class="week-header">10</th>
+      <th class="week-header">11</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>1</strong></td>
+      <td class="activity">Planning and Requirements</td>
+      <td class="desc">Gather and analyze system requirements; define scope, objectives, and project plan.</td>
+      <td><div class="bar bar2"></div></td>
+      <td><div class="bar bar2"></div></td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+    <tr>
+      <td><strong>2</strong></td>
+      <td class="activity">System Design</td>
+      <td class="desc">Design system architecture, database, user interface, and system workflow.</td>
+      <td></td><td></td>
+      <td><div class="bar bar3"></div></td>
+      <td><div class="bar bar3"></div></td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+    <tr>
+      <td><strong>3</strong></td>
+      <td class="activity">Development of Core Modules</td>
+      <td class="desc">Implement core modules including offices management, inventory management, report generation, QR stickers, requisitions, and procurement tracking.</td>
+      <td></td><td></td><td></td><td></td>
+      <td><div class="bar bar"></div></td>
+      <td><div class="bar bar"></div></td>
+      <td><div class="bar bar"></div></td>
+      <td></td><td></td><td></td><td></td>
+    </tr>
+    <tr>
+      <td><strong>4</strong></td>
+      <td class="activity">Testing and Quality Assurance</td>
+      <td class="desc">Perform functional and non-functional testing; fix bugs and improve system performance.</td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      <td><div class="bar bar4"></div></td>
+      <td><div class="bar bar4"></div></td>
+      <td></td><td></td>
+    </tr>
+    <tr>
+      <td><strong>5</strong></td>
+      <td class="activity">Deployment, Training, and Implementation</td>
+      <td class="desc">Deploy the system, conduct user training, and ensure successful system implementation.</td>
+      <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+      <td><div class="bar bar5"></div></td>
+      <td><div class="bar bar5"></div></td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="caption">Table 1 presents the actual project schedule of development of the Centralized Inventory and Resource Tracking System of LGU Tibiao. It is composed of five (5) sprints. The Gantt chart is based on the sprint breakdown and maps each sprint into a weekly timeline to visualize the development schedule.</p>
+
+</body>
+</html>

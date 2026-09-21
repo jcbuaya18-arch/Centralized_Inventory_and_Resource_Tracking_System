@@ -1,0 +1,380 @@
+{
+  "entities": {
+    "Office": {
+      "title": "Office",
+      "description": "An LGU office or department",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the office" },
+        "code": { "type": "string", "description": "Unique office code" }
+      },
+      "required": ["name", "code"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "An organizational unit or department inside the LGU with assigned users",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the department" },
+        "assignedUsers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "User emails or UIDs assigned to this department"
+        }
+      },
+      "required": ["name"]
+    },
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "A physical asset or equipment owned by the LGU conforming to LGU asset classes",
+      "type": "object",
+      "properties": {
+        "article": { "type": "string", "description": "Name or article of the item" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "propertyNumber": { "type": "string", "description": "Unique property number" },
+        "unitOfMeasure": { "type": "string", "description": "Unit of measure (e.g., unit, set)" },
+        "unitValue": { "type": "number", "description": "Value per unit" },
+        "qtyPropertyCard": { "type": "integer", "description": "Quantity as per property card" },
+        "qtyPhysicalCount": { "type": "integer", "description": "Actual physical count" },
+        "category": { "type": "string", "description": "Asset category" },
+        "office": { "type": "string", "description": "Office name where the item is located" },
+        "departmentId": { "type": "string", "description": "Referenced ID of department holding the item" },
+        "personAccountable": { "type": "string", "description": "Name of the person accountable" },
+        "remarks": { "type": "string", "description": "Additional remarks" },
+        "classification": { 
+          "type": "string", 
+          "description": "Expenditure nature of the item",
+          "enum": ["EXPENDABLE", "SEMI_EXPENDABLE", "NON_EXPENDABLE"] 
+        },
+        "status": { 
+          "type": "string", 
+          "description": "Lifecycle state of the item",
+          "enum": ["AVAILABLE", "REQUESTED", "APPROVED", "ISSUED", "RETURNED", "DAMAGED"] 
+        },
+        "condition": { 
+          "type": "string", 
+          "description": "Physical state of the item",
+          "enum": ["New", "Used", "Damaged"] 
+        },
+        "value": { "type": "number", "description": "Assigned monetary value of the item" },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "user": { "type": "string" },
+              "action": { "type": "string" }
+            }
+          }
+        },
+        "imageUrls": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["article", "propertyNumber", "unitValue", "qtyPhysicalCount", "category", "office", "personAccountable", "classification", "status", "condition"]
+    },
+    "LguForm": {
+      "title": "LGU Form",
+      "description": "A formal inventory slip or transfer report conforming to COA/LGU standards",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["ICS", "ITR", "STOCK_CARD", "SUPPLIES_REGISTRY"] },
+        "itemId": { "type": "string", "description": "Linked Inventory Item ID" },
+        "userId": { "type": "string", "description": "User UID who requested or is assigned" },
+        "departmentId": { "type": "string", "description": "Target Department ID" },
+        "quantity": { "type": "integer", "description": "Quantity processed in the transaction" },
+        "dateCreated": { "type": "string", "format": "date-time", "description": "Timestamp of creation" },
+        "status": { "type": "string", "description": "Status of the slip" }
+      },
+      "required": ["type", "itemId", "userId", "departmentId", "quantity", "dateCreated", "status"]
+    },
+    "StockCardTransaction": {
+      "title": "Stock Card Transaction",
+      "description": "An entry under the stock card for checking balances",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["IN", "OUT"] },
+        "quantity": { "type": "integer" },
+        "date": { "type": "string", "format": "date-time" },
+        "referenceFormId": { "type": "string" }
+      },
+      "required": ["type", "quantity", "date"]
+    },
+    "UserAcceptance": {
+      "title": "User Acceptance",
+      "description": "Receipt confirmation log signed by receiving officer",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "formId": { "type": "string" },
+        "acceptedAt": { "type": "string", "format": "date-time" },
+        "signature": { "type": "string", "description": "Optional physical signatures / electronic trace" }
+      },
+      "required": ["userId", "itemId", "formId", "acceptedAt"]
+    },
+    "SystemLog": {
+      "title": "System Log",
+      "description": "Audit log for system activities",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" },
+        "action": { "type": "string" },
+        "module": { "type": "string" }
+      },
+      "required": ["timestamp", "user", "action", "module"]
+    },
+    "AccessLog": {
+      "title": "Access Log",
+      "description": "Log of user access attempts",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" },
+        "status": { "type": "string" },
+        "device": { "type": "string" },
+        "ip": { "type": "string" }
+      },
+      "required": ["timestamp", "user", "status", "device", "ip"]
+    },
+    "GeneratedReport": {
+      "title": "Generated Report",
+      "description": "A finalized inventory audit report",
+      "type": "object",
+      "properties": {
+        "report_type": { "type": "string" },
+        "fund_cluster": { "type": "string" },
+        "report_date": { "type": "string" },
+        "accountable_person": { "type": "string" },
+        "accountable_position": { "type": "string" },
+        "accountability_date": { "type": "string" },
+        "committee_chair": { "type": "string" },
+        "head_of_agency": { "type": "string" },
+        "head_position": { "type": "string" },
+        "coa_rep": { "type": "string" },
+        "total_value": { "type": "number" },
+        "item_count": { "type": "integer" },
+        "items_snapshot": { "type": "array", "items": { "type": "object" } },
+        "status": { "type": "string", "enum": ["Draft", "Finalized"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["report_type", "report_date", "total_value", "status"]
+    },
+    "ReceivingRequest": {
+      "title": "Receiving Request",
+      "description": "Suppliers receiving delivery request that starts at mayor's approval",
+      "type": "object",
+      "properties": {
+        "itemArticle": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "unitValue": { "type": "number" },
+        "supplier": { "type": "string" },
+        "office": { "type": "string" },
+        "deliveryDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING_MAYOR", "FORWARDED", "APPROVED", "RECEIVED", "REJECTED"] },
+        "requestedBy": { "type": "string" }
+      },
+      "required": ["itemArticle", "category", "quantity", "unitValue", "supplier", "office", "deliveryDate", "status", "requestedBy"]
+    },
+    "AssetRequest": {
+      "title": "Asset Request",
+      "description": "Office head asset requisitions form submitted to supply officer/admin",
+      "type": "object",
+      "properties": {
+        "itemArticle": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "justification": { "type": "string" },
+        "office": { "type": "string" },
+        "requestedBy": { "type": "string" },
+        "requestedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["PENDING", "FORWARDED", "APPROVED", "DECLINED", "DISPATCHED", "REJECTED", "RETURNED_FOR_REVISION"] }
+      },
+      "required": ["itemArticle", "category", "quantity", "justification", "office", "requestedBy", "requestedAt", "status"]
+    },
+    "AccountantRequest": {
+      "title": "Accountant Request",
+      "description": "Accountant requests for administration approval",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Subject of the request" },
+        "details": { "type": "string", "description": "Description of the request" },
+        "amount": { "type": "number", "description": "Requested funding amount, if any" },
+        "submittedBy": { "type": "string", "description": "Author or accountant name" },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "adminRemarks": { "type": "string", "description": "Optional administrative response remarks" },
+        "handledBy": { "type": "string", "description": "Admin who evaluated this request" },
+        "handledAt": { "type": "string", "format": "date-time", "description": "Timestamp of handles" }
+      },
+      "required": ["title", "details", "submittedBy", "submittedAt", "status", "priority"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app real-time notifications for official systems",
+      "type": "object",
+      "properties": {
+        "recipientOffice": { "type": "string", "description": "Target office for the notification" },
+        "recipientRole": { "type": "string", "description": "Target role (e.g. ADMIN or OFFICE_HEAD)" },
+        "message": { "type": "string", "description": "The message body" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isRead": { "type": "boolean", "description": "Whether the notification is processed/read" },
+        "type": { "type": "string", "enum": ["SUBMISSION", "DECISION"] },
+        "reportId": { "type": "string", "description": "Target report ID linked to the notification" }
+      },
+      "required": ["message", "timestamp", "isRead", "type"]
+    },
+    "ProcurementTransaction": {
+      "title": "Procurement Transaction",
+      "description": "Consolidated log tracking status updates for requisitions and procurement",
+      "type": "object",
+      "properties": {
+        "slipNumber": { "type": "string" },
+        "requestId": { "type": "string" },
+        "itemArticle": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "user": { "type": "string" },
+        "office": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "details": { "type": "string" }
+      },
+      "required": ["slipNumber", "requestId", "itemArticle", "quantity", "status", "user", "office", "timestamp", "details"]
+    },
+    "InventoryTransaction": {
+      "title": "Inventory Transaction",
+      "description": "Log of a single inventory transaction (receipt, distribution, issuance, return)",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "article": { "type": "string" },
+        "officeId": { "type": "string" },
+        "transactionType": { "type": "string", "enum": ["Item Received", "Item Distributed", "Item Issued", "Item Returned"] },
+        "quantity": { "type": "integer" },
+        "previousBalance": { "type": "integer" },
+        "newBalance": { "type": "integer" },
+        "user": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "remarks": { "type": "string" },
+        "reference": { "type": "string" }
+      },
+      "required": ["itemId", "article", "officeId", "transactionType", "quantity", "previousBalance", "newBalance", "user", "date", "time", "timestamp", "remarks", "reference"]
+    },
+    "MasterAsset": {
+      "title": "Master Asset",
+      "description": "A centralized record of an LGU asset class or specific unique item defining its global attributes",
+      "type": "object",
+      "properties": {
+        "propertyNumber": { "type": "string", "description": "Unique property number" },
+        "article": { "type": "string", "description": "Name or article of the asset" },
+        "description": { "type": "string", "description": "Detailed description" },
+        "category": { "type": "string", "description": "Asset category" },
+        "brand": { "type": "string" },
+        "modelNumber": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "unitOfMeasure": { "type": "string" },
+        "unitValue": { "type": "number" },
+        "acquisitionCost": { "type": "number" },
+        "acquisitionDate": { "type": "string" },
+        "supplier": { "type": "string" },
+        "warrantyExpiration": { "type": "string" },
+        "usefulLife": { "type": "number" },
+        "assetCode": { "type": "string" },
+        "classification": { "type": "string", "enum": ["PAR", "ICS"] },
+        "isFixed": { "type": "boolean" },
+        "isFixedMaster": { "type": "boolean" }
+      },
+      "required": ["propertyNumber", "article", "category"]
+    },
+    "ImageMetadata": {
+      "title": "Image Metadata",
+      "description": "Metadata for uploaded inventory images",
+      "type": "object",
+      "properties": {
+        "image_path": { "type": "string" },
+        "image_filename": { "type": "string" },
+        "image_size": { "type": "number" },
+        "image_type": { "type": "string" },
+        "uploaded_at": { "type": "string" }
+      },
+      "required": ["image_path", "image_filename"]
+    }
+  },
+  "firestore": {
+    "/offices/{officeId}": {
+      "schema": "Office",
+      "description": "Collection of LGU offices"
+    },
+    "/departments/{deptId}": {
+      "schema": "Department",
+      "description": "Detailed organizational structure departments"
+    },
+    "/inventory_items/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Collection of LGU inventory items"
+    },
+    "/forms/{formId}": {
+      "schema": "LguForm",
+      "description": "Generated inventory forms/registries"
+    },
+    "/stock_cards/{itemId}/transactions/{transactionId}": {
+      "schema": "StockCardTransaction",
+      "description": "Individual IN/OUT entries tracking stock card history"
+    },
+    "/acceptance/{acceptanceId}": {
+      "schema": "UserAcceptance",
+      "description": "User digital receipt acknowledgements"
+    },
+    "/system_logs/{logId}": {
+      "schema": "SystemLog",
+      "description": "Collection of system audit logs"
+    },
+    "/access_logs/{logId}": {
+      "schema": "AccessLog",
+      "description": "Collection of access attempt logs"
+    },
+    "/reports/{reportId}": {
+      "schema": "GeneratedReport",
+      "description": "Collection of generated audit reports"
+    },
+    "/receiving_requests/{requestId}": {
+      "schema": "ReceivingRequest",
+      "description": "Supplier delivery/cargo listings needing mayor signature"
+    },
+    "/requests/{requestId}": {
+      "schema": "AssetRequest",
+      "description": "Asset requisitions fields from office head dashboards"
+    },
+    "/accountant_requests/{requestId}": {
+      "schema": "AccountantRequest",
+      "description": "Accountant requests/funding files requiring admin review"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Collection of real-time application alert notifications"
+    },
+    "/procurement_transactions/{txId}": {
+      "schema": "ProcurementTransaction",
+      "description": "Consolidated procurement and requisition status history log"
+    },
+    "/inventory_transactions/{txId}": {
+      "schema": "InventoryTransaction",
+      "description": "Log of all inventory transactions"
+    },
+    "/master_assets/{masterId}": {
+      "schema": "MasterAsset",
+      "description": "Centralized registry of master assets for normalized lookup"
+    },
+    "/image_metadata/{imageId}": {
+      "schema": "ImageMetadata",
+      "description": "Collection of uploaded image metadata"
+    }
+  }
+}

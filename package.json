@@ -1,0 +1,43 @@
+{
+  "name": "centralized-inventory-and-resource-tracking-system-of-lgu-tibiao",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "start": "node dist/server.cjs",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
+    "@types/node": "^22.14.0",
+    "@types/uuid": "^11.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "cors": "^2.8.6",
+    "esbuild": "^0.28.1",
+    "express": "^5.2.1",
+    "firebase": "^12.11.0",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^1.21.0",
+    "motion": "^12.40.0",
+    "multer": "^2.2.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^3.7.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.1",
+    "typescript": "~5.8.2",
+    "uuid": "^14.0.1",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  }
+}

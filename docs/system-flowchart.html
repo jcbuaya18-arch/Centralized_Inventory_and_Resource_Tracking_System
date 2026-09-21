@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Flowchart — LGU Tibiao CIRTS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .chart { width: 780px; }
+
+  /* ── Shape styles ── */
+  .row { display: flex; justify-content: center; position: relative; }
+
+  .shape {
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 13px; line-height: 1.3;
+    border: 2px solid #000; background: #fff;
+  }
+  .terminator { border-radius: 50px; padding: 8px 30px; background: #f5f5f5; font-weight: 600; }
+  .process { padding: 8px 16px; }
+  .decision-box {
+    width: 100px; height: 100px; border: 2px solid #000; background: #fff;
+    transform: rotate(45deg); display: flex; align-items: center; justify-content: center;
+  }
+  .decision-box span { transform: rotate(-45deg); font-size: 11.5px; text-align: center; line-height: 1.25; }
+  .decision { display: flex; justify-content: center; }
+  .decision-label { width: 100px; height: 100px; position: relative; }
+  .decision-label .decision-box { position: absolute; top: 0; left: 0; }
+  .decision-label .label-overlay {
+    position: absolute; top: 50%; left: calc(100% + 6px);
+    transform: translateY(-50%); font-size: 11px; white-space: nowrap;
+  }
+  .decision-label .label-left {
+    position: absolute; top: 50%; right: calc(100% + 6px);
+    transform: translateY(-50%); font-size: 11px; white-space: nowrap;
+  }
+
+  /* Arrows */
+  .arrow-down {
+    display: flex; justify-content: center; height: 28px; position: relative;
+  }
+  .arrow-down::before {
+    content: ''; width: 2px; height: 100%; background: #000;
+  }
+  .arrow-down::after {
+    content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid #000;
+  }
+  .arrow-up::after {
+    content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid #000;
+  }
+  .arrow-label {
+    position: absolute; font-size: 11px; background: #fff; padding: 0 3px; z-index: 2;
+  }
+
+  /* Branch containers */
+  .branches {
+    display: flex; justify-content: center; gap: 0; position: relative;
+  }
+  .branch { display: flex; flex-direction: column; align-items: center; }
+  .branch-left { width: 220px; }
+  .branch-center { width: 220px; }
+  .branch-right { width: 220px; }
+
+  /* Horizontal connector line */
+  .h-connector {
+    position: relative; width: 100%; display: flex; align-items: center; justify-content: center;
+    height: 2px; background: #000;
+  }
+
+  /* Decision sub-row */
+  .decision-row {
+    display: flex; align-items: center; justify-content: center; gap: 0; position: relative;
+  }
+  .decision-row .no-label { font-size: 11px; white-space: nowrap; }
+
+  /* Side arrow for "No" branches going back */
+  .feedback-yes {
+    font-size: 11px;
+  }
+
+  /* Title */
+  .title {
+    text-align: center; font-size: 14px; font-weight: bold; margin-top: 30px;
+    line-height: 1.4;
+  }
+
+  /* Spacer */
+  .spacer-sm { height: 6px; }
+  .spacer-md { height: 14px; }
+</style>
+</head>
+<body>
+<div class="chart">
+
+  <!-- START -->
+  <div class="row"><div class="shape terminator">Start</div></div>
+  <div class="arrow-down"></div>
+
+  <!-- LOG-IN -->
+  <div class="row"><div class="shape process">Log-in</div></div>
+  <div class="arrow-down"></div>
+
+  <!-- HAVE ACCOUNT? + CREATE ACCOUNT -->
+  <div class="row" style="align-items: center;">
+    <div class="decision-label">
+      <div class="decision-box"><span>Have<br/>Account?</span></div>
+      <div class="label-overlay">
+        <span style="font-size:11px;">— No —→ </span>
+        <span class="shape process" style="padding:5px 12px; font-size:12px; display:inline-flex;">Create Account</span>
+      </div>
+      <div class="label-left" style="top: 100%; left: 50%; right: auto; transform: translateX(-50%);">
+      </div>
+    </div>
+  </div>
+
+  <!-- Yes arrow going down -->
+  <div style="display:flex; justify-content:center; position:relative;">
+    <span class="arrow-label" style="left: calc(50% + 8px); top: 4px;">Yes</span>
+    <div class="arrow-down"></div>
+  </div>
+
+  <!-- ACCESS DASHBOARD -->
+  <div class="row"><div class="shape process">Access Dashboard</div></div>
+  <div class="arrow-down"></div>
+
+  <!-- CHECK USER ROLE -->
+  <div class="row">
+    <div class="decision-label">
+      <div class="decision-box"><span>Check<br/>User<br/>Role</span></div>
+    </div>
+  </div>
+
+  <!-- Three horizontal branches -->
+  <div class="spacer-md"></div>
+  <div style="position: relative; display: flex; justify-content: center; height: 20px;">
+    <div style="position: absolute; top: 0; width: 600px; height: 2px; background: #000;"></div>
+    <!-- Left drop -->
+    <div style="position: absolute; left: 90px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <!-- Center drop -->
+    <div style="position: absolute; left: 50%; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <!-- Right drop -->
+    <div style="position: absolute; right: 90px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+  </div>
+  <div style="display:flex; justify-content: space-between; padding: 0 20px; font-size:10px; color:#555;">
+    <span style="width:220px; text-align:center;">Admin / Supply / Accounting</span>
+    <span style="width:220px; text-align:center;">Office Head</span>
+    <span style="width:220px; text-align:center;">Mayor</span>
+  </div>
+
+  <!-- Three branch columns -->
+  <div class="spacer-md"></div>
+  <div class="branches">
+    <!-- ═══ LEFT BRANCH ═══ -->
+    <div class="branch branch-left">
+      <div class="shape process" style="font-size:12px;">Manage Inventory Items</div>
+      <div class="arrow-down"></div>
+      <div class="shape process" style="font-size:12px;">Manage Offices</div>
+      <div class="arrow-down"></div>
+      <div class="shape process" style="font-size:12px;">Process Requests &amp; Requisitions</div>
+      <div class="arrow-down"></div>
+      <div class="shape process" style="font-size:12px;">Manage Users &amp; Roles</div>
+    </div>
+
+    <!-- ═══ CENTER BRANCH ═══ -->
+    <div class="branch branch-center">
+      <div class="shape process" style="font-size:12px;">Submit Request for Items</div>
+      <div class="arrow-down"></div>
+      <div class="decision">
+        <div class="decision-label">
+          <div class="decision-box" style="width:80px;height:80px;"><span>Add/<br/>Update?</span></div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:center; position:relative;">
+        <span class="arrow-label" style="left: calc(50% + 8px); top: 2px;">Yes</span>
+        <div class="arrow-down" style="height:22px;"></div>
+      </div>
+      <div class="shape process" style="font-size:12px;">View Request Status</div>
+    </div>
+
+    <!-- ═══ RIGHT BRANCH ═══ -->
+    <div class="branch branch-right">
+      <div class="shape process" style="font-size:12px;">Review &amp; Approve Requests</div>
+      <div class="arrow-down"></div>
+      <div class="decision">
+        <div class="decision-label">
+          <div class="decision-box" style="width:80px;height:80px;"><span>Approve?</span></div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:center; position:relative;">
+        <span class="arrow-label" style="left: calc(50% + 8px); top: 2px;">Yes</span>
+        <div class="arrow-down" style="height:22px;"></div>
+      </div>
+      <div class="shape process" style="font-size:12px;">View Reports &amp; Dashboard</div>
+    </div>
+  </div>
+
+  <div class="spacer-md"></div>
+
+  <!-- CONVERGE LINE -->
+  <div style="position: relative; display: flex; justify-content: center; height: 20px;">
+    <div style="position: absolute; top: 0; width: 600px; height: 2px; background: #000;"></div>
+    <div style="position: absolute; left: 90px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; left: 50%; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; right: 90px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+  </div>
+
+  <!-- UPDATE SYSTEM -->
+  <div class="row" style="margin-top: 8px;">
+    <div class="shape process" style="padding: 8px 24px;">
+      Update System<br/>
+      <span style="font-size:10px; font-weight:normal;">(Real-time Firestore synchronization)</span>
+    </div>
+  </div>
+  <div class="arrow-down"></div>
+
+  <!-- ITEM UPDATED OR NEW? -->
+  <div class="row">
+    <div class="decision-label">
+      <div class="decision-box" style="width:110px;height:110px;">
+        <span>Item Updated<br/>or New?</span>
+      </div>
+      <div class="label-overlay">
+        <span style="font-size:11px;">— No —→ Skip ↓</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:center; position:relative;">
+    <span class="arrow-label" style="left: calc(50% + 8px); top: 4px;">Yes</span>
+    <div class="arrow-down"></div>
+  </div>
+
+  <!-- GENERATE QR CODE -->
+  <div class="row">
+    <div class="shape process">Generate QR Code &amp; Print Sticker</div>
+  </div>
+  <div class="arrow-down"></div>
+
+  <!-- PROCEED? -->
+  <div class="row">
+    <div class="decision-label">
+      <div class="decision-box"><span>Proceed?</span></div>
+      <div class="label-overlay">
+        <span style="font-size:11px;">— No —→ Back to Dashboard</span>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:center; position:relative;">
+    <span class="arrow-label" style="left: calc(50% + 8px); top: 4px;">Yes</span>
+    <div class="arrow-down"></div>
+  </div>
+
+  <!-- REPORTING PHASE -->
+  <div class="row">
+    <div class="shape process" style="padding: 8px 24px;">Reporting Phase</div>
+  </div>
+  <div class="arrow-down"></div>
+
+  <!-- Three report branches -->
+  <div style="position: relative; display: flex; justify-content: center; height: 20px;">
+    <div style="position: absolute; top: 0; width: 560px; height: 2px; background: #000;"></div>
+    <div style="position: absolute; left: 110px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; left: 50%; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; right: 110px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+  </div>
+
+  <div class="branches" style="gap:0;">
+    <div class="branch" style="width:190px;">
+      <div class="shape process" style="font-size:12px;">Generate Inventory<br/>Reports</div>
+    </div>
+    <div class="branch" style="width:190px;">
+      <div class="shape process" style="font-size:12px;">Generate GAM Forms<br/>(Appendix 73)</div>
+    </div>
+    <div class="branch" style="width:190px;">
+      <div class="shape process" style="font-size:12px;">View Logs &amp;<br/>Audit Trail</div>
+    </div>
+  </div>
+
+  <div class="spacer-md"></div>
+
+  <!-- Converge -->
+  <div style="position: relative; display: flex; justify-content: center; height: 20px;">
+    <div style="position: absolute; top: 0; width: 560px; height: 2px; background: #000;"></div>
+    <div style="position: absolute; left: 110px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; left: 50%; top: 0; width: 2px; height: 20px; background: #000;"></div>
+    <div style="position: absolute; right: 110px; top: 0; width: 2px; height: 20px; background: #000;"></div>
+  </div>
+
+  <div class="spacer-sm"></div>
+
+  <!-- PRINT & EXPORT -->
+  <div class="row">
+    <div class="shape process" style="padding: 8px 24px;">Print Reports &amp; Export Documents</div>
+  </div>
+  <div class="arrow-down"></div>
+
+  <!-- END -->
+  <div class="row"><div class="shape terminator">End</div></div>
+
+  <!-- TITLE -->
+  <div class="title">
+    Figure 5. System Flowchart for the Centralized Inventory and<br/>
+    Resource Tracking System of LGU Tibiao
+  </div>
+
+</div>
+</body>
+</html>

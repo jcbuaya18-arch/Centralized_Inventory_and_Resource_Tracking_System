@@ -1,0 +1,177 @@
+================================================================================
+CORRECTED TABLES & FIGURES — JC New Revised Document (Chapters I–III)
+================================================================================
+Copy-paste each section into the corresponding location in your Word document.
+Search for the "ORIGINAL:" text to find where each replacement goes.
+================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 10: Table 5 — Hardware Requirements (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: Table 5 (Hardware Requirements) in Chapter III.
+The current table only lists generic development hardware. REPLACE with the following:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 5. Hardware Requirements of the System
+
+| COMPONENT              | SPECIFICATION                                                             | PURPOSE                                                                           |
+|------------------------|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| Development Computer   | Desktop or laptop with at least 8 GB RAM, Intel Core i5 or equivalent     | Used for designing, coding, and testing the system during development.            |
+| Client Computer        | Any desktop or laptop with a modern web browser (Chrome, Firefox, Edge)   | Used by end users to access the web-based system during daily operations.         |
+| Mobile Device          | Smartphone or tablet with a modern mobile browser (for offline mode)      | Used for offline data entry and queuing edits when internet connectivity is unavailable. |
+| Internet Connection    | Stable broadband or Wi-Fi connection                                       | Required for real-time cloud synchronization, user authentication, and data access.|
+| Printer                | Standard laser or inkjet printer                                          | Used for printing QR-based property stickers, Appendix 73, ICS, PAR, and ITR reports. |
+| Scanner (Optional)     | Flatbed or handheld QR code scanner                                       | Used for scanning QR property stickers to retrieve asset information.             |
+| Cloud Server           | Firebase-hosted cloud infrastructure (managed by Google)                  | Stores and synchronizes all system data in real time with built-in redundancy.     |
+
+Table 5 presents the hardware requirements needed for the development and implementation of the Centralized Inventory and Resource Tracking System of LGU Tibiao. It identifies the essential devices and their corresponding specifications, along with their roles in supporting system operations. These components ensure that the system can efficiently manage assets and inventory, generate reports, and provide real-time access to data for smooth and reliable municipal operations. The system also supports offline data entry on mobile devices, allowing users to queue inventory edits when internet connectivity is unavailable and automatically synchronize data once connectivity is restored.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 11: Table 1 — Gantt Chart Image Update Instructions
+────────────────────────────────────────────────────────────────────────────────
+
+NOTE: The text rows in Table 1 have already been corrected. However, the
+GRAPHIC IMAGE of the Gantt chart likely still shows the old Sprint 3 text.
+
+TO FIX THE IMAGE:
+1. Open your Gantt chart image in your editing tool (Visio, draw.io, Word SmartArt, etc.)
+2. Find the row for "Sprint 3"
+3. Change the text from "Stock Monitoring, Sales Tracking" to "Offices Management"
+4. Keep the same visual bar/wave style
+
+Below is the corrected table data in case you need to regenerate the entire chart:
+
+─── BEGIN COPY FROM HERE ───
+
+Table 1. Time Table of Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Table 1 presents the actual project schedule of development of the Centralized Inventory and Resource Tracking System of LGU Tibiao. It is composed of five (5) sprints. The Gantt chart is based on the sprint breakdown and maps each sprint into a weekly timeline to visualize the development schedule.
+
+SPRINT | ACTIVITIES                         | DESCRIPTION                                                                                                                              | WEEKS
+-------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|------
+1      | Planning and Requirements          | Gather and analyze system requirements; define scope, objectives, and project plan.                                                      | 1–2
+2      | System Design                      | Design system architecture, database, user interface, and system workflow.                                                                | 3–4
+3      | Development of Core Modules        | Implement core modules including offices management, inventory management, report generation, QR stickers, requisitions, and procurement tracking. | 5–7
+4      | Testing and Quality Assurance      | Perform functional and non-functional testing; fix bugs and improve system performance.                                                   | 8–9
+5      | Deployment, User Training, and System Implementation | Deploy the system, conduct user training, and ensure successful system implementation.                                        | 10–11
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 12: Figure 3 — System Architecture Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 3 that starts with:
+"Figure 3 shows how the Centralized Inventory and Resource Tracking System..."
+
+REPLACE the entire Figure 3 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 3. System Architecture of the Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Figure 3 shows how the Centralized Inventory and Resource Tracking System of LGU Tibiao processes data from user interaction to database storage. The primary users of the system include the Administrator, Office Head, Supply staff, Accounting staff, and general Staff, each of whom interacts with the system based on assigned access privileges and role-specific responsibilities. The User Interface Layer allows users to access the system through a web-based interface. Through this interface, users can log in, manage asset and inventory records, monitor resource availability, track asset movement, process requisitions, and generate reports. Each interaction made through the interface is processed by the system to perform the required operations. The Application Logic Layer contains the core functional modules that handle system processes. The authentication and authorization module verifies user credentials and controls system access based on role-based access control (RBAC). The asset and inventory management module handles the creation, updating, and monitoring of asset records. The resource tracking module manages the movement, assignment, and status of resources. The requisitions and procurement module manages the workflow for requisition requests, approvals, and procurement tracking. The reporting module generates official LGU reports such as Appendix 73, ICS, PAR, and ITR. The QR code generation module produces property stickers for asset identification. The notification module manages alerts and notification history. The user management module handles user accounts, roles, and permissions. The Data Management Layer stores all system records in Firebase Firestore, including user accounts, asset and inventory data, categories, offices, requisitions, procurement transactions, system logs, access logs, and generated reports. The system also includes an Offline Sync Layer that queues edits made without internet connectivity and automatically synchronizes them to the cloud database once connectivity is restored.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 13: Figure 4 — ERD Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 4 that reads:
+"Figure 4 shows the major entities of the proposed system and their relationships."
+
+REPLACE the entire Figure 4 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 4. ERD for the Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Figure 4 shows the major entities of the Centralized Inventory and Resource Tracking System of LGU Tibiao and their relationships. The Entity-Relationship Diagram illustrates the core data structures that support the system's operations. The primary entities include Users, who represent all registered system users with their assigned roles and office assignments; Offices, which represent municipal departments or offices used to classify and assign inventory records; Categories, which group assets by type; and Assets, which store detailed information about each government-owned property including item name, description, property number, quantity, unit, condition, status, and assigned office. Additionally, the ERD includes Requisitions, which track requisition and procurement requests through their lifecycle from submission to approval or decline; Procurement Transactions, which record supplier details, delivery dates, and receiving status for procured items; Notifications, which store alerts and updates for pending approvals and requisition changes; System Logs, which maintain a chronological record of user activities and inventory modifications for audit purposes; and Access Logs, which track user login and access events. These entities are interconnected through defined relationships that support the system's core functions, including inventory management, requisition processing, report generation, and audit trail recording.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 14: Figure 6 — Use Case Diagram Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 6 that reads:
+"The system includes two primary actors: the Administrator and Authorized Personnel."
+
+REPLACE the entire Figure 6 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 6. Use-Case Diagram of Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Figure 6 shows the interaction between the users and the Centralized Inventory and Resource Tracking System of LGU Tibiao. The system includes six primary actors corresponding to the system's role-based access control: Administrator, Office Head, Supply, Accounting, Staff, and Unauthorized User. The Administrator has full access to all system modules, including managing user accounts, maintaining asset and inventory records, overseeing all offices, generating reports, viewing audit logs, and managing the cloud database. The Office Head manages inventory and requisitions specific to their assigned office, including submitting requisition requests and viewing office-specific reports. The Supply staff handles the encoding, updating, and monitoring of asset records, as well as managing procurement transactions and generating QR-based property stickers. The Accounting staff reviews and approves financial aspects of requisitions and procurement transactions, and has access to accounting-related reports. The Staff can view inventory data, track asset status, and generate reports within their assigned permissions. The Unauthorized User is a registered user awaiting approval for system access and has limited visibility until their role is assigned. All users access the system through a login function to ensure that only authorized individuals can use the system. The Use Case Diagram helped the researchers define the boundaries of the system and organize its major functions. It also ensured that the required features were aligned with the objectives of the study, particularly in improving asset tracking, monitoring inventory availability, managing requisitions and procurement, and simplifying report generation for the Local Government Unit of Tibiao.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 15: Figure 8 — Sequence Diagram Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 8 that reads:
+"Figure 8 shows the interaction among the user, application, authentication module, database, and report generation module."
+
+REPLACE the entire Figure 8 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 8. Sequence Diagram of Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Figure 8 shows the interaction among the user, application, authentication module, database, and report generation module. The process begins when the user logs in to the system. The application sends the entered credentials to the authentication module, which verifies the account through the database using Firebase Authentication. Once access is granted, the user can manage asset and inventory records, process requisitions, and generate reports. For asset and inventory management, the user inputs or updates asset details, and the application processes the information and updates the Firestore database accordingly. The system validates all inputs before saving to ensure data accuracy. If the data is valid, the system stores the information and displays a confirmation message. Otherwise, an error message is shown to notify the user of invalid input. For requisitions, the user submits a requisition request, which is forwarded to the appropriate approver (Office Head or Supply). The approver reviews and either approves or declines the request, and the system sends a notification to the requester. When generating reports, the user requests specific data such as inventory status, Appendix 73, ICS, PAR, or ITR. The report generation module retrieves relevant data from the database, formats it according to the selected report type, and presents it to the user for review and printing. The sequence diagram illustrates the systematic flow of operations that ensure data accuracy, real-time updates, and reliable information for municipal operations and decision-making.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 16: Figure 9 — Wireframe Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 9 that reads:
+"Figure 9 shows the visual structure and layout of the Centralized Inventory and Resource Tracking System..."
+
+REPLACE the entire Figure 9 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 9. Wireframe of the Centralized Inventory and Resource Tracking System of LGU Tibiao
+
+Figure 9 shows the visual structure and layout of the Centralized Inventory and Resource Tracking System of LGU Tibiao. It outlines the key screens and user interfaces designed for the different user roles including the Administrator, Office Head, Supply, Accounting, and Staff. The design prioritizes simplicity, usability, and accessibility by organizing features into clear sections such as login, role-specific dashboards, inventory management, offices management, requisitions management, procurement tracking, QR sticker generation, report generation, audit view, cloud ledger, notification history, and user profile interfaces. The wireframe ensures that core processes such as managing inventory records, monitoring asset availability, processing requisitions, and generating reports are straightforward and efficient for users. Each role-based dashboard is tailored to display only the information and functions relevant to that role—for example, the Office Head Dashboard provides office-specific requisition management, while the Supply Dashboard focuses on asset encoding and QR sticker generation. Administrative functions, including data management, audit trail viewing, and monitoring of system records, are easily accessible through a structured sidebar navigation and organized interface layout. Each screen is designed to provide clear visibility of data through tables, forms, and summary panels. Overall, the wireframe serves as a guide for the actual interface development, ensuring a user-friendly, consistent, and efficient system design that supports effective asset and inventory management operations within the Local Government Unit of Tibiao.
+
+─── END COPY TO HERE ───
+
+
+────────────────────────────────────────────────────────────────────────────────
+CORRECTION 17: Figure 7 — Flowchart Description (Chapter III)
+────────────────────────────────────────────────────────────────────────────────
+
+SEARCH FOR: The paragraph describing Figure 7 that reads:
+"Figure 7 illustrates the sequence of steps and decision points..."
+
+REPLACE the entire Figure 7 description paragraph with:
+
+─── BEGIN COPY FROM HERE ───
+
+Figure 7. Flowchart of the Admin
+
+Figure 7 illustrates the sequence of steps and decision points that occur within the system, from user login up to asset and inventory management, requisition processing, resource tracking, and report generation. It serves as a visual guide in understanding how the system operates and how different components interact during execution. The flowchart begins with the user authentication process, where the user inputs login credentials and the system verifies their validity through Firebase Authentication. This step ensures that only authorized users can access the system. Once authenticated, the user is directed to the role-specific dashboard, where various system functions are available depending on their assigned role. For the Administrator, the flowchart outlines processes related to managing user accounts, maintaining asset and inventory records across all offices, overseeing requisition approvals, monitoring resource availability, tracking asset movement, and generating official reports. For the Office Head, the flowchart includes submitting and tracking requisitions for their office. For Supply staff, the flowchart covers asset encoding, updating records, generating QR-based property stickers, and managing procurement transactions. For Accounting staff, the flowchart includes reviewing and approving financial aspects of requisitions. The flowchart also illustrates the offline data entry process, where edits made without internet connectivity are queued locally and synchronized upon reconnection. Each decision point in the flowchart ensures that the appropriate actions are taken based on user roles and system responses, supporting efficient and accurate municipal inventory operations.
+
+─── END COPY TO HERE ───
+
+
+================================================================================
+END OF CORRECTED TABLES & FIGURES
+================================================================================

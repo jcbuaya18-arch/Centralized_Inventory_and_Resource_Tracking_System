@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Figure 6 - Use Case Diagram</title>
+<style>
+  body { font-family: 'Times New Roman', Times, serif; margin: 20px; background: white; }
+  h3 { text-align: center; font-size: 13px; margin-bottom: 10px; }
+  .caption { font-size: 11px; color: #555; text-align: center; font-style: italic; margin-top: 10px; max-width: 800px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body>
+
+<h3>Figure 6. Use-Case Diagram of Centralized Inventory and Resource Tracking System of LGU Tibiao</h3>
+
+<svg viewBox="0 0 850 720" xmlns="http://www.w3.org/2000/svg" width="850" height="720" style="font-family: Arial, sans-serif;">
+  
+  <!-- System Boundary (dashed rectangle) -->
+  <rect x="240" y="20" width="370" height="680" rx="12" fill="#f0f4ff" stroke="#2980b9" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="425" y="42" text-anchor="middle" font-size="11" font-weight="bold" fill="#2c3e50">Centralized Inventory &amp; Resource Tracking System</text>
+
+  <!-- ===== LEFT SIDE ACTORS ===== -->
+
+  <!-- Administrator (black) — left top -->
+  <g transform="translate(60, 60)">
+    <circle cx="30" cy="15" r="12" fill="none" stroke="#2c3e50" stroke-width="2"/>
+    <line x1="30" y1="27" x2="30" y2="55" stroke="#2c3e50" stroke-width="2"/>
+    <line x1="10" y1="38" x2="50" y2="38" stroke="#2c3e50" stroke-width="2"/>
+    <line x1="30" y1="55" x2="12" y2="75" stroke="#2c3e50" stroke-width="2"/>
+    <line x1="30" y1="55" x2="48" y2="75" stroke="#2c3e50" stroke-width="2"/>
+    <text x="30" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#2c3e50">Administrator</text>
+  </g>
+
+  <!-- Office Head (green) — left middle -->
+  <g transform="translate(60, 340)">
+    <circle cx="30" cy="15" r="12" fill="none" stroke="#27ae60" stroke-width="2"/>
+    <line x1="30" y1="27" x2="30" y2="55" stroke="#27ae60" stroke-width="2"/>
+    <line x1="10" y1="38" x2="50" y2="38" stroke="#27ae60" stroke-width="2"/>
+    <line x1="30" y1="55" x2="12" y2="75" stroke="#27ae60" stroke-width="2"/>
+    <line x1="30" y1="55" x2="48" y2="75" stroke="#27ae60" stroke-width="2"/>
+    <text x="30" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#27ae60">Office Head</text>
+  </g>
+
+  <!-- ===== RIGHT SIDE ACTORS ===== -->
+
+  <!-- Accountant (red) — right top -->
+  <g transform="translate(720, 180)">
+    <circle cx="30" cy="15" r="12" fill="none" stroke="#c0392b" stroke-width="2"/>
+    <line x1="30" y1="27" x2="30" y2="55" stroke="#c0392b" stroke-width="2"/>
+    <line x1="10" y1="38" x2="50" y2="38" stroke="#c0392b" stroke-width="2"/>
+    <line x1="30" y1="55" x2="12" y2="75" stroke="#c0392b" stroke-width="2"/>
+    <line x1="30" y1="55" x2="48" y2="75" stroke="#c0392b" stroke-width="2"/>
+    <text x="30" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#c0392b">Accountant</text>
+  </g>
+
+  <!-- ===== USE CASES (ovals, centered) ===== -->
+
+  <!-- UC1: Login / Authenticate -->
+  <ellipse cx="425" cy="65" rx="90" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="69" text-anchor="middle" font-size="11">Login / Authenticate</text>
+
+  <!-- UC2: Manage Users & Roles -->
+  <ellipse cx="425" cy="130" rx="95" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="134" text-anchor="middle" font-size="11">Manage Users &amp; Roles</text>
+
+  <!-- UC3: Manage Assets / Inventory -->
+  <ellipse cx="425" cy="195" rx="105" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="199" text-anchor="middle" font-size="11">Manage Assets / Inventory</text>
+
+  <!-- UC4: Manage Offices -->
+  <ellipse cx="425" cy="260" rx="90" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="264" text-anchor="middle" font-size="11">Manage Offices</text>
+
+  <!-- UC5: Generate Reports -->
+  <ellipse cx="425" cy="325" rx="95" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="329" text-anchor="middle" font-size="11">Generate Reports</text>
+
+  <!-- UC6: Generate QR Stickers -->
+  <ellipse cx="425" cy="390" rx="100" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="394" text-anchor="middle" font-size="11">Generate QR Stickers</text>
+
+  <!-- UC7: Submit/Approve Requisitions -->
+  <ellipse cx="425" cy="455" rx="110" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="459" text-anchor="middle" font-size="11">Submit/Approve Requisitions</text>
+
+  <!-- UC8: Track Procurement -->
+  <ellipse cx="425" cy="520" rx="95" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="524" text-anchor="middle" font-size="11">Track Procurement</text>
+
+  <!-- UC9: View Audit Logs -->
+  <ellipse cx="425" cy="585" rx="90" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="589" text-anchor="middle" font-size="11">View Audit Logs</text>
+
+  <!-- UC10: View Notifications -->
+  <ellipse cx="425" cy="650" rx="100" ry="22" fill="white" stroke="#333" stroke-width="1.5"/>
+  <text x="425" y="654" text-anchor="middle" font-size="11">View Notifications</text>
+
+  <!-- ===== CONNECTIONS: Administrator (black, left side) ===== -->
+  <!-- Admin → Login -->
+  <line x1="90" y1="85" x2="335" y2="65" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Manage Users -->
+  <line x1="90" y1="85" x2="330" y2="130" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Manage Assets -->
+  <line x1="90" y1="85" x2="320" y2="195" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Manage Offices -->
+  <line x1="90" y1="85" x2="335" y2="260" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Generate Reports -->
+  <line x1="90" y1="85" x2="330" y2="325" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Generate QR Stickers -->
+  <line x1="90" y1="85" x2="325" y2="390" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Submit/Approve Requisitions -->
+  <line x1="90" y1="85" x2="315" y2="455" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → Track Procurement -->
+  <line x1="90" y1="85" x2="330" y2="520" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → View Audit Logs -->
+  <line x1="90" y1="85" x2="335" y2="585" stroke="#2c3e50" stroke-width="1.2"/>
+  <!-- Admin → View Notifications -->
+  <line x1="90" y1="85" x2="325" y2="650" stroke="#2c3e50" stroke-width="1.2"/>
+
+  <!-- ===== CONNECTIONS: Office Head (green, left side) ===== -->
+  <!-- Office Head → Login -->
+  <line x1="90" y1="365" x2="335" y2="65" stroke="#27ae60" stroke-width="1.2"/>
+  <!-- Office Head → Manage Assets -->
+  <line x1="90" y1="365" x2="320" y2="195" stroke="#27ae60" stroke-width="1.2"/>
+  <!-- Office Head → Generate Reports -->
+  <line x1="90" y1="365" x2="330" y2="325" stroke="#27ae60" stroke-width="1.2"/>
+  <!-- Office Head → Generate QR Stickers -->
+  <line x1="90" y1="365" x2="325" y2="390" stroke="#27ae60" stroke-width="1.2"/>
+  <!-- Office Head → Submit/Approve Requisitions -->
+  <line x1="90" y1="365" x2="315" y2="455" stroke="#27ae60" stroke-width="1.2"/>
+
+  <!-- ===== CONNECTIONS: Accountant (red, right side) ===== -->
+  <!-- Accountant → Login -->
+  <line x1="750" y1="205" x2="515" y2="65" stroke="#c0392b" stroke-width="1.2"/>
+  <!-- Accountant → Generate Reports -->
+  <line x1="750" y1="205" x2="520" y2="325" stroke="#c0392b" stroke-width="1.2"/>
+  <!-- Accountant → Submit/Approve Requisitions -->
+  <line x1="750" y1="205" x2="535" y2="455" stroke="#c0392b" stroke-width="1.2"/>
+  <!-- Accountant → Track Procurement -->
+  <line x1="750" y1="205" x2="520" y2="520" stroke="#c0392b" stroke-width="1.2"/>
+  <!-- Accountant → View Notifications -->
+  <line x1="750" y1="205" x2="525" y2="650" stroke="#c0392b" stroke-width="1.2"/>
+
+</svg>
+
+<p class="caption">Figure 6. Use-Case Diagram showing the interaction between three user roles (Administrator, Office Head, and Accountant) and the Centralized Inventory and Resource Tracking System of LGU Tibiao. Each actor's connections indicate the system functions accessible to their role.</p>
+
+</body>
+</html>

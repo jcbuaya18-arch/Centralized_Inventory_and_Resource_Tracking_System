@@ -1,0 +1,10 @@
+{
+  "name": "Centralized Inventory and Resource Tracking System of LGU Tibiao",
+  "description": "A comprehensive inventory and resource tracking system for the Municipal Government of Tibiao, Antique, featuring formal approvals, property barcode sticker generation, and physical count report auditing.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
