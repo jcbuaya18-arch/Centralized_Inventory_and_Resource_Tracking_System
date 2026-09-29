@@ -128,7 +128,7 @@ export interface ProcurementTransactionPayload {
   itemArticle: string;
   quantity: number;
   amount?: number | null;
-  status: 'Sent' | 'Pending' | 'Received' | 'Distributed' | 'Approved' | 'Declined';
+  status: 'Sent' | 'Pending' | 'Received' | 'Distributed' | 'Approved' | 'Declined' | 'Submitted';
   user: string;
   office: string;
   details: string;
@@ -166,7 +166,7 @@ export async function logProcurementTransaction(data: ProcurementTransactionPayl
 export interface PRSAuditLog {
   user: string;
   role: string;
-  formType: 'PRS';
+  formType: 'PRS' | 'PAR' | 'ICS' | string;
   transactionNumber: string;
   timestamp: string;
   action: string;

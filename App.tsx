@@ -14,7 +14,6 @@ import CloudLedger from './components/CloudLedger';
 import AuditView from './components/AuditView';
 import { RequisitionsManager } from './components/RequisitionsManager';
 import { ProcurementTransactionHistory } from './components/ProcurementTransactionHistory';
-import { OutgoingRequestLogs } from './components/OutgoingRequestLogs';
 import { NotificationHistory } from './components/NotificationHistory';
 import MayorDashboard from './components/MayorDashboard';
 import OfficeHeadDashboard from './components/OfficeHeadDashboard';
@@ -179,14 +178,6 @@ const App: React.FC = () => {
             userOffice={userProfile.office}
             initialTab={requisitionsInitialTab}
             initialSearch={requisitionsInitialSearch}
-          />
-        );
-      case View.OUTGOING_LOGS:
-        return (
-          <OutgoingRequestLogs
-            userOffice={userProfile.office}
-            userName={userProfile.fullName}
-            userRole={userProfile.role}
           />
         );
       case View.NOTIFICATIONS:

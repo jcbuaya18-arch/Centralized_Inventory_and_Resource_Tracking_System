@@ -249,6 +249,337 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
   const [fundingFilter, setFundingFilter] = useState("ALL");
   const [selectedDeptCarryingFilter, setSelectedDeptCarryingFilter] = useState<string>("ALL");
 
+  // Individual PAR & ICS Receipt Generation Modal states
+  const [selectedPRForReceipt, setSelectedPRForReceipt] = useState<any | null>(null);
+  const [showPRReceiptModal, setShowPRReceiptModal] = useState<boolean>(false);
+  const [receiptFundCluster, setReceiptFundCluster] = useState<string>("GENERAL FUND");
+  const [receiptDocNo, setReceiptDocNo] = useState<string>("");
+  const [receiptReceivedBy, setReceiptReceivedBy] = useState<string>("");
+  const [receiptApprovedBy, setReceiptApprovedBy] = useState<string>("");
+  const [receiptIssuedBy, setReceiptIssuedBy] = useState<string>("");
+  const [receiptDateIssued, setReceiptDateIssued] = useState<string>("");
+  const [isSubmittingPRReceipt, setIsSubmittingPRReceipt] = useState<boolean>(false);
+
+  const openIndividualReceiptModal = (pr: any) => {
+    setSelectedPRForReceipt(pr);
+    const unitCost = pr.unitCost !== undefined && pr.unitCost !== null && pr.unitCost !== ''
+      ? Number(pr.unitCost)
+      : ((Number(pr.amount) || 0) / (Number(pr.quantity) || 1));
+    const isPAR = unitCost >= 50000;
+    const docPrefix = isPAR ? "PAR" : "ICS";
+    const slipNo = pr.slipNumber || pr.requestNumber || Math.floor(100000 + Math.random() * 900000);
+    
+    setReceiptFundCluster(pr.fundingSource || "GENERAL FUND");
+    setReceiptDocNo(`${docPrefix}-${new Date().getFullYear()}-${slipNo}`);
+    setReceiptReceivedBy(pr.requestedBy || pr.targetOfficeHead || "Accountable Officer");
+    setReceiptApprovedBy("MUNICIPAL ENGINEER / GSO ADMIN");
+    setReceiptIssuedBy(userName || "MUNICIPAL ACCOUNTANT");
+    setReceiptDateIssued(new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }));
+    setShowPRReceiptModal(true);
+  };
+
+  const handlePrintIndividualPRReceipt = (pr: any) => {
+    const unitCost = pr.unitCost !== undefined && pr.unitCost !== null && pr.unitCost !== ''
+      ? Number(pr.unitCost)
+      : ((Number(pr.amount) || 0) / (Number(pr.quantity) || 1));
+    const isPAR = unitCost >= 50000;
+    const reportTitle = isPAR ? "PROPERTY ACKNOWLEDGEMENT RECEIPT" : "INVENTORY CUSTODIAN SLIP";
+    const reportSubtitle = isPAR ? "Annex B" : "Appendix 59";
+    const qty = pr.quantity || 1;
+    const totalAmount = pr.amount !== undefined && pr.amount !== null ? Number(pr.amount) : (unitCost * qty);
+    
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow pop-ups to print the receipt.");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${reportTitle} - ${pr.itemArticle || pr.title}</title>
+        <style>
+          @media print {
+            @page { size: portrait; margin: 0.4in; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+          body { font-family: 'Times New Roman', Times, serif; margin: 20px; color: #000; font-size: 10pt; line-height: 1.3; }
+          .sheet-container { width: 100%; max-width: 800px; margin: 0 auto; }
+          .subtitle { text-align: right; font-style: italic; font-weight: bold; font-size: 11pt; margin-bottom: 5px; color: #555; }
+          .header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+          .title-block { text-align: center; font-weight: bold; font-size: 14pt; text-transform: uppercase; margin: 10px 0; letter-spacing: 0.5px; }
+          .meta-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 12px; }
+          .meta-td { padding: 4px 0; }
+          .underline-span { border-bottom: 1px solid black; padding: 0 8px; font-weight: bold; }
+          .data-table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 20px; }
+          .data-table th, .data-table td { border: 1px solid black; padding: 6px 8px; }
+          .data-table th { background-color: #f8fafc; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
+          .sign-table { width: 100%; border-collapse: collapse; border: 1.5px solid black; margin-top: 20px; font-size: 9.5pt; page-break-inside: avoid; }
+          .sign-td { width: 50%; padding: 12px; vertical-align: top; }
+          .sign-line { border-bottom: 1px solid black; text-align: center; font-weight: bold; text-transform: uppercase; margin-top: 35px; margin-bottom: 2px; font-size: 10pt; }
+          .sign-sub { font-size: 8pt; text-align: center; color: #374151; }
+        </style>
+      </head>
+      <body onload="window.print()">
+        <div class="sheet-container">
+          <div class="subtitle">${reportSubtitle}</div>
+          <table class="header-table">
+            <tr>
+              <td style="width: 15%; text-align: center;">
+                <img src="/tibiaoLogo.jpg" style="width:70px; height:70px; object-fit:contain;" alt="Seal" />
+              </td>
+              <td style="width: 70%; text-align: center; line-height: 1.3;">
+                <div style="font-size: 10pt; text-transform: uppercase; font-weight: bold;">Republic of the Philippines</div>
+                <div style="font-size: 9.5pt; font-style: italic;">Province of Antique</div>
+                <div style="font-size: 12.5pt; font-weight: bold; text-transform: uppercase;">MUNICIPALITY OF TIBIAO</div>
+              </td>
+              <td style="width: 15%;">&nbsp;</td>
+            </tr>
+          </table>
+
+          <div class="title-block">${reportTitle}</div>
+
+          <table class="meta-table">
+            <tr>
+              <td class="meta-td" style="width: 60%;">
+                <strong>Entity Name:</strong> <span class="underline-span">LGU TIBIAO - ${(pr.targetOffice || "MUNICIPAL ENGINEERING").toUpperCase()}</span>
+              </td>
+              <td class="meta-td" style="width: 40%; text-align: right;">
+                <strong>Fund Cluster:</strong> <span class="underline-span">${receiptFundCluster || "GENERAL FUND"}</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="meta-td">
+                <strong>Supplier:</strong> <span class="underline-span">${pr.supplier || "N/A"}</span>
+              </td>
+              <td class="meta-td" style="text-align: right;">
+                <strong>${isPAR ? 'PAR No.' : 'ICS No.'}:</strong> <span class="underline-span" style="font-family: monospace;">${receiptDocNo}</span>
+              </td>
+            </tr>
+          </table>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">Qty</th>
+                <th style="width: 10%;">Unit</th>
+                ${!isPAR ? '<th style="width: 12%;">Unit Cost</th><th style="width: 14%;">Total Amount</th>' : ''}
+                <th style="width: 40%;">Description (Article & Specs)</th>
+                <th style="width: 16%;">Property / Inv. No.</th>
+                <th style="width: 14%;">${isPAR ? 'Acquisition Cost' : 'Useful Life'}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: center; font-weight: bold;">${qty}</td>
+                <td style="text-align: center; text-transform: uppercase;">${pr.unit || "pcs"}</td>
+                ${!isPAR ? `
+                  <td style="text-align: right; font-family: monospace;">₱${unitCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <td style="text-align: right; font-family: monospace; font-weight: bold;">₱${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                ` : ''}
+                <td>
+                  <strong style="text-transform: uppercase; font-size: 9.5pt; display: block;">${pr.itemArticle || pr.title}</strong>
+                  <span style="font-size: 8.5pt; color: #374151; white-space: pre-line;">${pr.details || pr.justification || "Procurement item"}</span>
+                  ${pr.poNumber ? `<br/><span style="font-size: 8pt; color: #4b5563;">PO #: ${pr.poNumber}</span>` : ''}
+                  ${pr.invoiceNumber ? `<span style="font-size: 8pt; color: #4b5563;"> | Inv #: ${pr.invoiceNumber}</span>` : ''}
+                </td>
+                <td style="text-align: center; font-family: monospace;">${pr.slipNumber ? `PROP-${pr.slipNumber}` : 'Pending'}</td>
+                <td style="text-align: ${isPAR ? 'right' : 'center'}; font-family: monospace; font-weight: bold;">
+                  ${isPAR ? `₱${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}` : `${pr.usefulLife || 5} yrs`}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <table class="sign-table">
+            <tr>
+              <td class="sign-td" style="border-right: 1px solid black;">
+                <div style="font-weight: bold; text-transform: uppercase; font-size: 8.5pt;">Received By:</div>
+                <div class="sign-line">${receiptReceivedBy}</div>
+                <div class="sign-sub">Signature over Printed Name of Accountable Officer</div>
+                <div style="font-size: 8.5pt; margin-top: 10px;">Position: <strong>Department Head / Representative</strong></div>
+                <div style="font-size: 8.5pt; margin-top: 4px;">Date: <strong>${receiptDateIssued}</strong></div>
+              </td>
+              <td class="sign-td">
+                <div style="font-weight: bold; text-transform: uppercase; font-size: 8.5pt;">${isPAR ? 'Approved By:' : 'Issued By:'}</div>
+                <div class="sign-line">${isPAR ? receiptApprovedBy : receiptIssuedBy}</div>
+                <div class="sign-sub">Signature over Printed Name of Authorized Official</div>
+                <div style="font-size: 8.5pt; margin-top: 10px;">Position: <strong>Municipal Accountant / Admin Representative</strong></div>
+                <div style="font-size: 8.5pt; margin-top: 4px;">Date: <strong>${receiptDateIssued}</strong></div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const handleSubmitIndividualPRReceipt = async () => {
+    if (!selectedPRForReceipt) return;
+    setIsSubmittingPRReceipt(true);
+
+    try {
+      const pr = selectedPRForReceipt;
+      const timestamp = new Date().toISOString();
+      const unitCost = pr.unitCost !== undefined && pr.unitCost !== null && pr.unitCost !== ''
+        ? Number(pr.unitCost)
+        : ((Number(pr.amount) || 0) / (Number(pr.quantity) || 1));
+      const isPAR = unitCost >= 50000;
+      const docType = isPAR ? "PAR" : "ICS";
+      const reportType = isPAR ? "Property Acknowledgement Receipt (PAR)" : "Inventory Custodian Slip (ICS)";
+      const reportMode = isPAR ? "par" : "ics";
+      const totalAmount = pr.amount !== undefined && pr.amount !== null ? Number(pr.amount) : (unitCost * (pr.quantity || 1));
+      const targetDept = pr.targetOffice || "Municipal Engineering";
+
+      const itemSnapshot = [{
+        id: pr.id,
+        article: pr.itemArticle || pr.title || "Equipment",
+        description: pr.details || pr.justification || "",
+        propertyNumber: pr.slipNumber ? `PROP-${pr.slipNumber}` : "Pending",
+        unitValue: unitCost,
+        qtyPhysicalCount: pr.quantity || 1,
+        qtyPropertyCard: pr.quantity || 1,
+        unitOfMeasure: pr.unit || "pcs",
+        dateReceived: pr.datePurchased || timestamp.split('T')[0],
+        personAccountable: receiptReceivedBy
+      }];
+
+      // 1. Create Report in 'reports' collection
+      const reportPayload: any = {
+        report_type: reportType,
+        fund_cluster: receiptFundCluster || "GENERAL FUND",
+        report_date: receiptDateIssued,
+        accountable_person: receiptReceivedBy,
+        accountable_position: "Accountable Department Officer",
+        accountability_date: receiptDateIssued,
+        total_value: totalAmount,
+        item_count: 1,
+        items_snapshot: itemSnapshot,
+        status: "Pending Approval",
+        reportMode: reportMode,
+        submittedByOffice: targetDept,
+        senderName: userName || "Accountant",
+        prsNumber: pr.slipNumber || pr.id,
+        forwardedStatus: "Pending",
+        forwardedAt: timestamp,
+        history: [
+          {
+            id: Math.random().toString(36).substr(2, 9),
+            timestamp: timestamp,
+            action: 'Created & Submitted',
+            details: `Individual ${docType} Receipt compiled from Purchase Request Slip ${pr.slipNumber || 'N/A'} by Accountant ${userName || ''}.`
+          }
+        ],
+        created_at: serverTimestamp()
+      };
+
+      if (isPAR) {
+        reportPayload.parNo = receiptDocNo;
+        reportPayload.spcNotedBy = receiptApprovedBy;
+        reportPayload.spcUnitCost = totalAmount;
+      } else {
+        reportPayload.icsNo = receiptDocNo;
+        reportPayload.icsDateIssued = receiptDateIssued;
+        reportPayload.icsEmployeeName = receiptReceivedBy;
+        reportPayload.icsIssuedBy = receiptIssuedBy;
+      }
+
+      const reportDocRef = await addDoc(collection(db, 'reports'), reportPayload);
+
+      // 2. Update the original Purchase Request document in 'requests'
+      const prDocRef = doc(db, 'requests', pr.id);
+      await updateDoc(prDocRef, {
+        parIcsStatus: 'Submitted',
+        parIcsType: docType,
+        parIcsNumber: receiptDocNo,
+        parIcsReportId: reportDocRef.id,
+        status: 'Pending Engineer/Admin Review',
+      });
+
+      // 3. Create entry in 'requests' collection for PAR/ICS review if not existing
+      await addDoc(collection(db, 'requests'), {
+        requestType: docType,
+        requestNumber: receiptDocNo,
+        prsNumber: pr.slipNumber || pr.id,
+        itemArticle: pr.itemArticle || pr.title || "Equipment",
+        office: targetDept,
+        requestedBy: userName || 'Accountant',
+        assignedAdmin: 'Engineer / GSO Admin',
+        amount: totalAmount,
+        quantity: pr.quantity || 1,
+        justification: `Individual ${docType} Receipt generated for PR Slip ${pr.slipNumber || 'N/A'}: "${pr.itemArticle || pr.title}" and submitted to Engineer/Admin.`,
+        status: 'Submitted',
+        reportId: reportDocRef.id,
+        items_snapshot: itemSnapshot,
+        requestedAt: timestamp
+      });
+
+      // 4. Notifications
+      await addDoc(collection(db, 'notifications'), {
+        recipientRole: 'OFFICE_HEAD',
+        recipientOffice: targetDept,
+        message: `INDIVIDUAL ${docType} RECEIPT SUBMITTED: Receipt ${receiptDocNo} for "${pr.itemArticle || pr.title}" (Slip: ${pr.slipNumber}) has been submitted by Accounting for your review and sign-off.`,
+        timestamp: timestamp,
+        isRead: false,
+        type: 'NEW_REQUEST',
+        reportId: reportDocRef.id
+      });
+
+      await addDoc(collection(db, 'notifications'), {
+        recipientRole: 'ADMIN',
+        message: `INDIVIDUAL ${docType} RECEIPT SUBMITTED: Receipt ${receiptDocNo} for "${pr.itemArticle || pr.title}" (Slip: ${pr.slipNumber}) has been submitted by Accounting for review.`,
+        timestamp: timestamp,
+        isRead: false,
+        type: 'NEW_REQUEST',
+        reportId: reportDocRef.id
+      });
+
+      // 5. System and Audit Logs
+      await addDoc(collection(db, 'system_logs'), {
+        timestamp: timestamp,
+        user: userName || "Accountant",
+        action: `Generated & submitted Individual ${docType} Receipt (${receiptDocNo}) for PR Slip ${pr.slipNumber || 'N/A'} ("${pr.itemArticle || pr.title}") to Engineer/Admin.`,
+        module: "Accountant Desk"
+      });
+
+      await logPRSAction({
+        user: userName,
+        role: 'ACCOUNTING',
+        formType: docType,
+        transactionNumber: receiptDocNo,
+        timestamp,
+        action: `RECEIPT SUBMISSION: Accountant generated and submitted individual ${docType} receipt ${receiptDocNo} for PR Slip ${pr.slipNumber || 'N/A'} to Engineer/Admin`,
+        module: "Procurement Audit"
+      });
+
+      await logProcurementTransaction({
+        slipNumber: pr.slipNumber || "N/A",
+        requestId: pr.id,
+        itemArticle: pr.itemArticle || pr.title || "Equipment",
+        quantity: pr.quantity || 1,
+        amount: totalAmount,
+        status: "Submitted",
+        user: userName,
+        office: "Accounting Office",
+        details: `Generated individual ${docType} receipt ${receiptDocNo} and submitted to Engineer/Admin.`
+      });
+
+      alert(`Success! Individual ${docType} Receipt (${receiptDocNo}) has been generated and submitted to Engineer & Admin.`);
+      setShowPRReceiptModal(false);
+      setSelectedPRForReceipt(null);
+    } catch (err) {
+      console.error("Failed to submit individual PAR/ICS receipt:", err);
+      alert("Error submitting receipt to Engineer/Admin.");
+    } finally {
+      setIsSubmittingPRReceipt(false);
+    }
+  };
+
   // Edit form states
   const [formUsefulLife, setFormUsefulLife] = useState<number>(5);
   const [formAssetCode, setFormAssetCode] = useState<string>("");
@@ -4023,6 +4354,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                               action: `CREATION & SUBMISSION: Accountant created and submitted PRS Slip ${finalSlipNumber} ("${newTitle}") with status "Pending Delivery"`,
                               module: "Procurement Audit"
                             });
+
+                            const submittedPRPayload = { id: prDocRef.id, ...payload };
+                            // Automatically open the Individual PAR / ICS Receipt Generator modal
+                            openIndividualReceiptModal(submittedPRPayload);
                           }
 
                           // Reset
@@ -4755,9 +5090,26 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                               </div>
                             )}
 
-                            {/* Action buttons (for editable states: PENDING, Pending Delivery, Returned, Rejected) */}
-                            {(req.status === 'PENDING' || req.status === 'Pending Delivery' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
-                              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3 mt-4">
+                            {/* Action buttons bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 mt-4">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <button
+                                  onClick={() => openIndividualReceiptModal(req)}
+                                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span>Generate &amp; Submit {(req.unitCost !== undefined && req.unitCost !== null && req.unitCost !== '' ? Number(req.unitCost) : ((Number(req.amount) || 0) / (Number(req.quantity) || 1))) >= 50000 ? 'PAR (≥₱50k)' : 'ICS (<₱50k)'} Receipt</span>
+                                </button>
+
+                                {req.parIcsStatus === 'Submitted' && (
+                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>{req.parIcsType || 'PAR/ICS'} Submitted ({req.parIcsNumber})</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
                                 {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
                                   <button
                                     onClick={() => handleSendToEngineer(req)}
@@ -4766,54 +5118,58 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                     Send to Engineer
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => {
-                                    setEditingActReq(req);
-                                    setNewTitle(req.itemArticle || req.title || '');
-                                    setNewDetails(req.details || req.justification || '');
-                                    setNewAmount(req.amount !== undefined && req.amount !== null ? req.amount : '');
-                                    setNewQuantity(req.quantity || 1);
-                                    setNewRequestedPerson(req.requestedBy || req.submittedBy || userName || '');
-                                    setNewPriority(req.priority || 'Medium');
-                                    setNewTargetOffice(req.targetOffice || "Municipal Engineering");
-                                    setNewTargetOfficeHead(req.targetOfficeHead || req.officeHead || '');
-                                    setNewPreparedBy(req.preparedBy || req.userName || userName || '');
-                                    setNewSlipNumber(req.slipNumber || '');
-                                    setNewSupplier(req.supplier || '');
-                                    setNewPONumber(req.poNumber || '');
-                                    setNewInvoiceNumber(req.invoiceNumber || '');
-                                    setNewUnitCost(req.unitCost !== undefined && req.unitCost !== null ? req.unitCost : '');
-                                    setNewExpectedDeliveryDate(req.expectedDeliveryDate || '');
-                                    setNewDatePurchased(req.datePurchased || '');
-                                    setNewFundingSource(req.fundingSource || 'General Fund');
-                                  }}
-                                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                >
-                                  Modify / Edit
-                                </button>
-                                <button
-                                  onClick={async () => {
-                                    if (!confirm("Are you sure you want to delete this procurement request?")) return;
-                                    try {
-                                      await deleteDoc(doc(db, "requests", req.id));
+                                {(req.status === 'PENDING' || req.status === 'Pending Delivery' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingActReq(req);
+                                      setNewTitle(req.itemArticle || req.title || '');
+                                      setNewDetails(req.details || req.justification || '');
+                                      setNewAmount(req.amount !== undefined && req.amount !== null ? req.amount : '');
+                                      setNewQuantity(req.quantity || 1);
+                                      setNewRequestedPerson(req.requestedBy || req.submittedBy || userName || '');
+                                      setNewPriority(req.priority || 'Medium');
+                                      setNewTargetOffice(req.targetOffice || "Municipal Engineering");
+                                      setNewTargetOfficeHead(req.targetOfficeHead || req.officeHead || '');
+                                      setNewPreparedBy(req.preparedBy || req.userName || userName || '');
+                                      setNewSlipNumber(req.slipNumber || '');
+                                      setNewSupplier(req.supplier || '');
+                                      setNewPONumber(req.poNumber || '');
+                                      setNewInvoiceNumber(req.invoiceNumber || '');
+                                      setNewUnitCost(req.unitCost !== undefined && req.unitCost !== null ? req.unitCost : '');
+                                      setNewExpectedDeliveryDate(req.expectedDeliveryDate || '');
+                                      setNewDatePurchased(req.datePurchased || '');
+                                      setNewFundingSource(req.fundingSource || 'General Fund');
+                                    }}
+                                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                  >
+                                    Modify / Edit
+                                  </button>
+                                )}
+                                {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm("Are you sure you want to delete this procurement request?")) return;
+                                      try {
+                                        await deleteDoc(doc(db, "requests", req.id));
 
-                                      await addDoc(collection(db, "system_logs"), {
-                                        timestamp: new Date().toISOString(),
-                                        user: userName,
-                                        action: `Accountant deleted Procurement Request: "${req.itemArticle || req.title}"`,
-                                        module: "Accountant Desk"
-                                      });
-                                    } catch (err) {
-                                      console.error("Failed to delete request:", err);
-                                      alert("Failed to delete registry document.");
-                                    }
-                                  }}
-                                  className="px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl text-rose-700 text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                >
-                                  Delete
-                                </button>
+                                        await addDoc(collection(db, "system_logs"), {
+                                          timestamp: new Date().toISOString(),
+                                          user: userName,
+                                          action: `Accountant deleted Procurement Request: "${req.itemArticle || req.title}"`,
+                                          module: "Accountant Desk"
+                                        });
+                                      } catch (err) {
+                                        console.error("Failed to delete request:", err);
+                                        alert("Failed to delete registry document.");
+                                      }
+                                    }}
+                                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl text-rose-700 text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -4996,6 +5352,503 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
           userName={user.fullName}
           offices={offices}
         />
+      )}
+      {editingActReq && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white w-full max-w-2xl rounded-[32px] shadow-2xl border border-slate-750 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 bg-slate-850 border-b border-slate-750 flex items-center justify-between">
+              <div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Modify Purchase Request Slip</span>
+                <h3 className="text-base font-black uppercase tracking-tight font-brand mt-0.5">
+                  Slip Ref: {editingActReq.slipNumber || 'N/A'}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setEditingActReq(null);
+                  setNewTitle('');
+                  setNewDetails('');
+                  setNewAmount('');
+                  setNewQuantity(1);
+                  setNewRequestedPerson(userName || '');
+                  setNewPriority('Medium');
+                  setNewTargetOffice("Municipal Engineering");
+                }}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateActRequest} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar text-xs font-bold">
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Item Name / Article *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g., Heavy-Duty Desktop Computers"
+                  className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Equipment Type / Category
+                  </label>
+                  <select
+                    value={newEquipmentType}
+                    onChange={(e) => setNewEquipmentType(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-200"
+                  >
+                    <option value="Office Equipment">Office Equipment</option>
+                    <option value="ICT Equipment">ICT Equipment</option>
+                    <option value="Transportation Equipment">Transportation Equipment</option>
+                    <option value="Construction Materials">Construction Materials</option>
+                    <option value="Other Equipment">Other Equipment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Supplier *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newSupplier}
+                    onChange={(e) => setNewSupplier(e.target.value)}
+                    placeholder="e.g. Acme Corp"
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Quantity *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={newQuantity}
+                    onChange={(e) => setNewQuantity(Number(e.target.value))}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Unit Cost *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={newUnitCost}
+                    onChange={(e) => setNewUnitCost(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="₱ Cost"
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-3 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Total Cost (Auto)
+                  </label>
+                  <input
+                    type="number"
+                    readOnly
+                    value={newAmount}
+                    className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3 py-3 text-xs font-black text-indigo-400 font-mono cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Date Purchased *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newDatePurchased}
+                    onChange={(e) => setNewDatePurchased(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Expected Delivery Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={newExpectedDeliveryDate}
+                    onChange={(e) => setNewExpectedDeliveryDate(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Requesting Person Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newRequestedPerson}
+                  onChange={(e) => setNewRequestedPerson(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                  Specification Details / Purpose
+                </label>
+                <textarea
+                  rows={3}
+                  value={newDetails}
+                  onChange={(e) => setNewDetails(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Priority
+                  </label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as any)}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-200"
+                  >
+                    <option value="Low">Low - Standard Handling</option>
+                    <option value="Medium">Medium - Regular Processing</option>
+                    <option value="High">High - Urgent Response Required</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Recipient Office
+                  </label>
+                  <select
+                    value={newTargetOffice}
+                    onChange={(e) => setNewTargetOffice(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-200"
+                  >
+                    <option value="Municipal Engineering">Municipal Engineering Office (Engineer)</option>
+                    <option value="Mayor's Office">Mayor's Office</option>
+                    <option value="Accounting Office">Accounting Office</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-slate-750">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingActReq(null);
+                    setNewTitle('');
+                    setNewDetails('');
+                    setNewAmount('');
+                    setNewQuantity(1);
+                    setNewRequestedPerson(userName || '');
+                    setNewPriority('Medium');
+                    setNewTargetOffice("Municipal Engineering");
+                  }}
+                  className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-300 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-900/30 cursor-pointer"
+                >
+                  Save &amp; Send to Engineer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Individual PAR & ICS Receipt Generation Modal */}
+      {showPRReceiptModal && selectedPRForReceipt && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="max-w-4xl w-full bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            {(() => {
+              const pr = selectedPRForReceipt;
+              const unitCost = pr.unitCost !== undefined && pr.unitCost !== null && pr.unitCost !== ''
+                ? Number(pr.unitCost)
+                : ((Number(pr.amount) || 0) / (Number(pr.quantity) || 1));
+              const isPAR = unitCost >= 50000;
+              const docTypeLabel = isPAR ? "PROPERTY ACKNOWLEDGEMENT RECEIPT (PAR)" : "INVENTORY CUSTODIAN SLIP (ICS)";
+              const annexLabel = isPAR ? "Annex B" : "Appendix 59";
+              const totalVal = pr.amount !== undefined && pr.amount !== null ? Number(pr.amount) : (unitCost * (pr.quantity || 1));
+
+              return (
+                <>
+                  <div className="bg-slate-900 text-white p-6 sm:p-7 flex items-center justify-between border-b border-slate-800 shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${isPAR ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                        {isPAR ? 'PAR' : 'ICS'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-black uppercase tracking-wider font-brand">{docTypeLabel}</h3>
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${isPAR ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'}`}>
+                            {isPAR ? 'Asset (≥ ₱50,000)' : 'Supply / Semi-expendable (< ₱50,000)'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                          Generated for Purchase Request Slip #{pr.slipNumber || pr.requestNumber || 'N/A'} • {annexLabel}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowPRReceiptModal(false);
+                        setSelectedPRForReceipt(null);
+                      }}
+                      className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Body - Scrollable */}
+                  <div className="overflow-y-auto p-6 sm:p-8 space-y-6">
+                    {/* Instructions banner */}
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                      <div className="text-xs text-slate-700 font-medium">
+                        <strong className="font-extrabold uppercase text-slate-900 block text-[11px] mb-0.5">Automated Receipt Classification</strong>
+                        This purchase request for <strong className="text-indigo-700">{pr.itemArticle || pr.title}</strong> has been classified as <strong className="text-slate-900">{isPAR ? 'PAR (Property Acknowledgement Receipt)' : 'ICS (Inventory Custodian Slip)'}</strong> based on unit valuation (₱{unitCost.toLocaleString(undefined, {minimumFractionDigits: 2})}). Review metadata and click submit to send to Engineer &amp; Admin.
+                      </div>
+                    </div>
+
+                    {/* Metadata Edit Form Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 text-xs font-bold text-slate-900">
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          Fund Cluster
+                        </label>
+                        <input
+                          type="text"
+                          value={receiptFundCluster}
+                          onChange={(e) => setReceiptFundCluster(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          {isPAR ? 'PAR Control Number' : 'ICS Control Number'}
+                        </label>
+                        <input
+                          type="text"
+                          value={receiptDocNo}
+                          onChange={(e) => setReceiptDocNo(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold font-mono text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          Date Issued
+                        </label>
+                        <input
+                          type="text"
+                          value={receiptDateIssued}
+                          onChange={(e) => setReceiptDateIssued(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          Received By (Accountable Officer)
+                        </label>
+                        <input
+                          type="text"
+                          value={receiptReceivedBy}
+                          onChange={(e) => setReceiptReceivedBy(e.target.value)}
+                          placeholder="Name of recipient / Dept Head"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          {isPAR ? 'Approved By (Authorized Official)' : 'Issued By (Authorized Official)'}
+                        </label>
+                        <input
+                          type="text"
+                          value={isPAR ? receiptApprovedBy : receiptIssuedBy}
+                          onChange={(e) => {
+                            if (isPAR) setReceiptApprovedBy(e.target.value);
+                            else setReceiptIssuedBy(e.target.value);
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          Target Department
+                        </label>
+                        <input
+                          type="text"
+                          readOnly
+                          value={pr.targetOffice || "Municipal Engineering"}
+                          className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold uppercase text-slate-600 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Official GAM Receipt Print Preview Box */}
+                    <div className="bg-white border-2 border-slate-900 rounded-2xl p-6 font-serif shadow-sm space-y-4">
+                      <div className="text-right italic font-bold text-[9pt] text-slate-400">{annexLabel}</div>
+                      
+                      <div className="text-center font-bold text-[8.5pt] uppercase text-slate-500 tracking-wider">
+                        REPUBLIC OF THE PHILIPPINES • PROVINCE OF ANTIQUE • MUNICIPALITY OF TIBIAO
+                      </div>
+
+                      <div className="text-center font-bold text-sm uppercase text-slate-900 tracking-wider border-b border-slate-300 pb-2">
+                        {docTypeLabel}
+                      </div>
+
+                      <div className="flex justify-between text-[9pt] font-sans">
+                        <div>
+                          <strong>Entity Name:</strong> LGU TIBIAO - {(pr.targetOffice || "MUNICIPAL ENGINEERING").toUpperCase()}
+                        </div>
+                        <div>
+                          <strong>{isPAR ? 'PAR No.' : 'ICS No.'}:</strong> <span className="font-mono font-bold text-indigo-700">{receiptDocNo}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between text-[9pt] font-sans">
+                        <div>
+                          <strong>Supplier:</strong> {pr.supplier || "N/A"}
+                        </div>
+                        <div>
+                          <strong>Fund Cluster:</strong> {receiptFundCluster}
+                        </div>
+                      </div>
+
+                      {/* Item Details Table */}
+                      <table className="w-full border-collapse border border-slate-900 text-[8.5pt] font-sans mt-3">
+                        <thead>
+                          <tr className="bg-slate-100 border-b border-slate-900">
+                            <th className="border border-slate-900 p-1.5 text-center">Qty</th>
+                            <th className="border border-slate-900 p-1.5 text-center">Unit</th>
+                            {!isPAR && <th className="border border-slate-900 p-1.5 text-right">Unit Cost</th>}
+                            {!isPAR && <th className="border border-slate-900 p-1.5 text-right">Total Amount</th>}
+                            <th className="border border-slate-900 p-1.5 text-left">Description (Article &amp; Specs)</th>
+                            <th className="border border-slate-900 p-1.5 text-center">Property / Inv. No.</th>
+                            <th className="border border-slate-900 p-1.5 text-right">{isPAR ? 'Acquisition Cost' : 'Useful Life'}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="border border-slate-900 p-2 text-center font-bold">{pr.quantity || 1}</td>
+                            <td className="border border-slate-900 p-2 text-center uppercase">{pr.unit || 'pcs'}</td>
+                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono">₱{unitCost.toLocaleString(undefined, {minimumFractionDigits:2})}</td>}
+                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono font-bold">₱{totalVal.toLocaleString(undefined, {minimumFractionDigits:2})}</td>}
+                            <td className="border border-slate-900 p-2">
+                              <strong className="uppercase text-slate-900 block">{pr.itemArticle || pr.title}</strong>
+                              <span className="text-[8pt] text-slate-600 block">{pr.details || pr.justification || "Procurement Item"}</span>
+                              {pr.poNumber && <span className="text-[7.5pt] text-slate-500">PO #: {pr.poNumber} </span>}
+                              {pr.invoiceNumber && <span className="text-[7.5pt] text-slate-500">| Inv #: {pr.invoiceNumber}</span>}
+                            </td>
+                            <td className="border border-slate-900 p-2 text-center font-mono">{pr.slipNumber ? `PROP-${pr.slipNumber}` : 'Pending'}</td>
+                            <td className="border border-slate-900 p-2 text-right font-mono font-bold">
+                              {isPAR ? `₱${totalVal.toLocaleString(undefined, {minimumFractionDigits:2})}` : `${pr.usefulLife || 5} yrs`}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      {/* Signatories preview block */}
+                      <div className="grid grid-cols-2 border border-slate-900 text-[8.5pt] font-sans mt-4">
+                        <div className="p-3 border-r border-slate-900">
+                          <div className="font-bold uppercase text-[7.5pt] text-slate-500">Received By:</div>
+                          <div className="border-b border-slate-900 mt-6 mb-1 text-center font-bold uppercase">{receiptReceivedBy}</div>
+                          <div className="text-[7pt] text-center text-slate-500">Signature over Printed Name of Accountable Officer</div>
+                          <div className="text-[7.5pt] mt-2">Date: <strong>{receiptDateIssued}</strong></div>
+                        </div>
+
+                        <div className="p-3">
+                          <div className="font-bold uppercase text-[7.5pt] text-slate-500">{isPAR ? 'Approved By:' : 'Issued By:'}</div>
+                          <div className="border-b border-slate-900 mt-6 mb-1 text-center font-bold uppercase">{isPAR ? receiptApprovedBy : receiptIssuedBy}</div>
+                          <div className="text-[7pt] text-center text-slate-500">Signature over Printed Name of Authorized Official</div>
+                          <div className="text-[7.5pt] mt-2">Date: <strong>{receiptDateIssued}</strong></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer / Action Bar */}
+                  <div className="bg-slate-50 border-t border-slate-200 p-5 sm:p-6 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPRReceiptModal(false);
+                        setSelectedPRForReceipt(null);
+                      }}
+                      className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                    >
+                      Close / Later
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handlePrintIndividualPRReceipt(pr)}
+                        className="px-5 py-2.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+                      >
+                        <FileSpreadsheet className="w-4 h-4 text-slate-600" />
+                        <span>Print Receipt</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSubmitIndividualPRReceipt}
+                        disabled={isSubmittingPRReceipt}
+                        className={`px-6 py-2.5 ${isPAR ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-indigo-100 disabled:opacity-50`}
+                      >
+                        {isSubmittingPRReceipt ? (
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                        <span>Submit {isPAR ? 'PAR' : 'ICS'} Receipt to Engineer/Admin</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -41,7 +41,6 @@ function getInitialView(): View {
     '/audit': View.AUDIT,
     '/database': View.DATABASE,
     '/requests': View.REQUESTS,
-    '/outgoing-logs': View.OUTGOING_LOGS,
     '/profile': View.PROFILE,
     '/transactions': View.TRANSACTIONS
   };
@@ -157,7 +156,6 @@ export function useRouting(offices: Office[]): UseRoutingReturn {
         [View.AUDIT]: '/audit',
         [View.DATABASE]: '/database',
         [View.REQUESTS]: '/requests',
-        [View.OUTGOING_LOGS]: '/outgoing-logs',
         [View.PROFILE]: '/profile',
         [View.TRANSACTIONS]: '/transactions'
       };
@@ -193,7 +191,6 @@ export function useRouting(offices: Office[]): UseRoutingReturn {
           '/audit': View.AUDIT,
           '/database': View.DATABASE,
           '/requests': View.REQUESTS,
-          '/outgoing-logs': View.OUTGOING_LOGS,
           '/profile': View.PROFILE,
           '/transactions': View.TRANSACTIONS
         };

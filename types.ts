@@ -150,7 +150,8 @@ export interface GeneratedReport {
   created_at?: string;
   reviewedBy?: string;
   
-  // Custom GAM Form Parameters
+  parNo?: string;
+  prsNumber?: string;
   reportMode?: string;
   spcStockNo?: string;
   spcReorderLevel?: string;

@@ -21,7 +21,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
     { id: View.ITEMS, label: 'Item Inventory', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
     { id: View.RECEIVING, label: 'Receiving & Inspection', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
     { id: View.REQUESTS, label: 'Procurement Request Slips', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    { id: View.OUTGOING_LOGS, label: 'Outgoing Request Logs', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
     { id: View.STICKERS, label: 'Property Stickers', icon: 'M7 7h.01M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z' },
     { id: View.REPORTS, label: 'Official Reports', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { id: View.TRANSACTIONS, label: 'Transaction Registry', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -39,14 +38,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
     }
     if (!rolePermissions) {
       if (userRole === UserRole.SUPPLY) {
-        return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.OUTGOING_LOGS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
+        return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
       }
       if (userRole === UserRole.ACCOUNTING) {
-        return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.OUTGOING_LOGS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
+        return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
       }
-      return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.OUTGOING_LOGS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
+      return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
     }
-    return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.OUTGOING_LOGS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
+    return [View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS, View.REPORTS, View.TRANSACTIONS].includes(item.id);
   });
   
   const configItems = navItems.filter(item => {

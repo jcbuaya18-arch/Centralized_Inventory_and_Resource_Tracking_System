@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { UserRole } from '../types';
 
@@ -26,6 +26,115 @@ export const OutgoingRequestLogs: React.FC<OutgoingRequestLogsProps> = ({ userOf
   // Selected Log Modal State
   const [selectedLog, setSelectedLog] = useState<any | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Edit Log Modal State
+  const [editingLog, setEditingLog] = useState<any | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Edit Form Fields
+  const [editArticle, setEditArticle] = useState('');
+  const [editQuantity, setEditQuantity] = useState<number>(1);
+  const [editAmount, setEditAmount] = useState<number | ''>(0);
+  const [editOriginOffice, setEditOriginOffice] = useState('');
+  const [editDestOffice, setEditDestOffice] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editRequestedBy, setEditRequestedBy] = useState('');
+  const [editJustification, setEditJustification] = useState('');
+  const [editAdminRemarks, setEditAdminRemarks] = useState('');
+
+  const startEditingLog = (log: any) => {
+    setEditingLog(log);
+    setEditArticle(log.article || '');
+    setEditQuantity(log.quantity || 1);
+    setEditAmount(log.amount !== undefined && log.amount !== null ? log.amount : '');
+    setEditOriginOffice(log.originOffice || '');
+    setEditDestOffice(log.destinationOffice || '');
+    setEditStatus(log.status || 'PENDING');
+    setEditRequestedBy(log.requestedBy || '');
+    setEditJustification(log.justification || '');
+    setEditAdminRemarks(log.adminRemarks || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveLogEdit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingLog) return;
+    setIsSavingEdit(true);
+    try {
+      const timestamp = new Date().toISOString();
+      const updatedHistoryItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        timestamp,
+        action: 'Modified Outgoing Log',
+        details: `Log record updated by ${userName || 'Accounting Officer'}. Status set to "${editStatus}".`
+      };
+
+      const existingHistory = editingLog.history || [];
+      const newHistory = [updatedHistoryItem, ...existingHistory];
+
+      if (editingLog.sourceType === 'REQUEST') {
+        const docRef = doc(db, 'requests', editingLog.rawId);
+        await updateDoc(docRef, {
+          itemArticle: editArticle,
+          title: editArticle,
+          quantity: Number(editQuantity),
+          amount: editAmount === '' ? 0 : Number(editAmount),
+          unitValue: editAmount === '' ? 0 : Number(editAmount),
+          originatingOffice: editOriginOffice,
+          office: editOriginOffice,
+          destinationOffice: editDestOffice,
+          targetOffice: editDestOffice,
+          recipientOffice: editDestOffice,
+          status: editStatus,
+          requestedBy: editRequestedBy,
+          submittedBy: editRequestedBy,
+          justification: editJustification,
+          details: editJustification,
+          adminRemarks: editAdminRemarks,
+          responseRemarks: editAdminRemarks,
+          history: newHistory,
+        });
+      } else if (editingLog.sourceType === 'PROCUREMENT_TX') {
+        const docRef = doc(db, 'procurement_transactions', editingLog.rawId);
+        await updateDoc(docRef, {
+          itemArticle: editArticle,
+          quantity: Number(editQuantity),
+          amount: editAmount === '' ? 0 : Number(editAmount),
+          office: editOriginOffice,
+          targetOffice: editDestOffice,
+          status: editStatus,
+          user: editRequestedBy,
+          details: editJustification,
+        });
+      } else if (editingLog.sourceType === 'INVENTORY_TX') {
+        const docRef = doc(db, 'inventory_transactions', editingLog.rawId);
+        await updateDoc(docRef, {
+          article: editArticle,
+          quantity: Number(editQuantity),
+          officeId: editOriginOffice,
+          targetOffice: editDestOffice,
+          remarks: editJustification,
+        });
+      }
+
+      await addDoc(collection(db, 'system_logs'), {
+        timestamp: new Date(),
+        user: userName || 'Accounting Officer',
+        action: `Modified Outgoing Request Log (${editingLog.slipNumber}): "${editArticle}" updated`,
+        module: 'Outgoing Request Logs'
+      });
+
+      alert(`Outgoing Request Log ${editingLog.slipNumber} updated successfully!`);
+      setShowEditModal(false);
+      setEditingLog(null);
+    } catch (err) {
+      console.error("Error updating outgoing request log:", err);
+      alert("Failed to save changes to Firestore database.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Real-time Firestore subscriptions
   useEffect(() => {
@@ -552,15 +661,26 @@ export const OutgoingRequestLogs: React.FC<OutgoingRequestLogsProps> = ({ userOf
                       </td>
 
                       <td className="py-4 px-3 text-right">
-                        <button
-                          onClick={() => {
-                            setSelectedLog(log);
-                            setShowDetailModal(true);
-                          }}
-                          className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm"
-                        >
-                          Details
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedLog(log);
+                              setShowDetailModal(true);
+                            }}
+                            className="px-3 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm"
+                          >
+                            Details
+                          </button>
+                          <button
+                            onClick={() => startEditingLog(log)}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-sm flex items-center gap-1"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -661,17 +781,189 @@ export const OutgoingRequestLogs: React.FC<OutgoingRequestLogsProps> = ({ userOf
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end">
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  const logToEdit = selectedLog;
+                  setShowDetailModal(false);
+                  setSelectedLog(null);
+                  startEditingLog(logToEdit);
+                }}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span>Edit Record</span>
+              </button>
               <button
                 onClick={() => {
                   setShowDetailModal(false);
                   setSelectedLog(null);
                 }}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all"
+                className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
               >
                 Close Record
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Log Modal */}
+      {showEditModal && editingLog && (
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl border border-gray-150 overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400">Modify Outgoing Requisition Record</span>
+                <h3 className="text-lg font-black uppercase tracking-tight font-brand mt-0.5">
+                  Edit Ref: {editingLog.slipNumber}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingLog(null);
+                }}
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveLogEdit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Article / Description *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editArticle}
+                    onChange={e => setEditArticle(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Current Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={e => setEditStatus(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="SUBMITTED">SUBMITTED / FORWARDED</option>
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="DISPATCHED">DISPATCHED</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="DECLINED">DECLINED</option>
+                    <option value="REJECTED">REJECTED</option>
+                    <option value="RETURNED_FOR_REVISION">RETURNED FOR REVISION</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editQuantity}
+                    onChange={e => setEditQuantity(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation Amount (₱)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editAmount}
+                    onChange={e => setEditAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Originating Office *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editOriginOffice}
+                    onChange={e => setEditOriginOffice(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Destination Office *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editDestOffice}
+                    onChange={e => setEditDestOffice(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Logging / Requesting Officer</label>
+                  <input
+                    type="text"
+                    value={editRequestedBy}
+                    onChange={e => setEditRequestedBy(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Purpose / Specifications / Justification</label>
+                  <textarea
+                    rows={2}
+                    value={editJustification}
+                    onChange={e => setEditJustification(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs text-slate-800 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Evaluation / Admin Remarks</label>
+                  <textarea
+                    rows={2}
+                    value={editAdminRemarks}
+                    onChange={e => setEditAdminRemarks(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 focus:border-indigo-600 rounded-xl font-bold text-xs text-slate-800 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingLog(null);
+                  }}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {isSavingEdit ? 'Saving...' : 'Save & Sync Log'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
