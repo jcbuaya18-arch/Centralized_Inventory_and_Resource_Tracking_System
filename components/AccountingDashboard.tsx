@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { InventoryItem, Office, AssetRequest, SystemLog, UserProfile } from "../types";
+import { InventoryItem, Office, AssetRequest, SystemLog, UserProfile, GeneratedReport } from "../types";
 import { db, logProcurementTransaction, logPRSAction } from "../firebase";
 import { NotificationBell } from "./NotificationBell";
-import { 
-  FileText, 
-  Truck, 
-  Package, 
-  Users, 
-  AlertTriangle, 
-  XCircle, 
-  CheckCircle2, 
+import {
+  FileText,
+  Truck,
+  Package,
+  Users,
+  AlertTriangle,
+  XCircle,
+  CheckCircle2,
   Clock,
   Menu,
   LayoutDashboard,
@@ -119,6 +119,9 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     }
   }, [activeTabOverride, onResetOverride]);
   const [assetRequests, setAssetRequests] = useState<AssetRequest[]>([]);
+  const [seedDraftReport, setSeedDraftReport] = useState<GeneratedReport | null>(null);
+  const [editingRequisitionId, setEditingRequisitionId] = useState<string | null>(null);
+  const [requisitionEdit, setRequisitionEdit] = useState<Partial<AssetRequest>>({});
   const [showShipmentModal, setShowShipmentModal] = useState(false);
   const [loadingReqs, setLoadingReqs] = useState(true);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -268,7 +271,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     const isPAR = unitCost >= 50000;
     const docPrefix = isPAR ? "PAR" : "ICS";
     const slipNo = pr.slipNumber || pr.requestNumber || Math.floor(100000 + Math.random() * 900000);
-    
+
     setReceiptFundCluster(pr.fundingSource || "GENERAL FUND");
     setReceiptDocNo(`${docPrefix}-${new Date().getFullYear()}-${slipNo}`);
     setReceiptReceivedBy(pr.requestedBy || pr.targetOfficeHead || "Accountable Officer");
@@ -287,7 +290,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     const reportSubtitle = isPAR ? "Annex B" : "Appendix 59";
     const qty = pr.quantity || 1;
     const totalAmount = pr.amount !== undefined && pr.amount !== null ? Number(pr.amount) : (unitCost * qty);
-    
+
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       alert("Please allow pop-ups to print the receipt.");
@@ -375,8 +378,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                 <td style="text-align: center; font-weight: bold;">${qty}</td>
                 <td style="text-align: center; text-transform: uppercase;">${pr.unit || "pcs"}</td>
                 ${!isPAR ? `
-                  <td style="text-align: right; font-family: monospace;">₱${unitCost.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-                  <td style="text-align: right; font-family: monospace; font-weight: bold;">₱${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                  <td style="text-align: right; font-family: monospace;">₱${unitCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td style="text-align: right; font-family: monospace; font-weight: bold;">₱${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 ` : ''}
                 <td>
                   <strong style="text-transform: uppercase; font-size: 9.5pt; display: block;">${pr.itemArticle || pr.title}</strong>
@@ -386,7 +389,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                 </td>
                 <td style="text-align: center; font-family: monospace;">${pr.slipNumber ? `PROP-${pr.slipNumber}` : 'Pending'}</td>
                 <td style="text-align: ${isPAR ? 'right' : 'center'}; font-family: monospace; font-weight: bold;">
-                  ${isPAR ? `₱${totalAmount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}` : `${pr.usefulLife || 5} yrs`}
+                  ${isPAR ? `₱${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `${pr.usefulLife || 5} yrs`}
                 </td>
               </tr>
             </tbody>
@@ -577,6 +580,51 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       alert("Error submitting receipt to Engineer/Admin.");
     } finally {
       setIsSubmittingPRReceipt(false);
+    }
+  };
+
+  const handleCreateActRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const timestamp = new Date().toISOString();
+      const payload: any = {
+        requestType: 'FINANCIAL',
+        slipNumber: editingActReq?.slipNumber || newSlipNumber || `PR-${Math.floor(100000 + Math.random() * 900000)}`,
+        itemArticle: newTitle,
+        details: newDetails,
+        amount: newAmount === '' ? 0 : Number(newAmount),
+        quantity: Number(newQuantity),
+        unitCost: newUnitCost === '' ? 0 : Number(newUnitCost),
+        requestedBy: newRequestedPerson || userName,
+        priority: newPriority,
+        office: 'Accounting Office',
+        targetOffice: newTargetOffice,
+        equipmentType: newEquipmentType,
+        supplier: newSupplier,
+        datePurchased: newDatePurchased,
+        expectedDeliveryDate: newExpectedDeliveryDate,
+        status: 'Pending Engineer/Admin Review',
+        requestedAt: timestamp,
+      };
+
+      if (editingActReq && editingActReq.id) {
+        await updateDoc(doc(db, 'requests', editingActReq.id), payload);
+      } else {
+        await addDoc(collection(db, 'requests'), payload);
+      }
+
+      setEditingActReq(null);
+      setNewTitle('');
+      setNewDetails('');
+      setNewAmount('');
+      setNewQuantity(1);
+      setNewRequestedPerson(userName || '');
+      setNewPriority('Medium');
+      setNewTargetOffice('Municipal Engineering');
+      alert('Purchase Request updated successfully!');
+    } catch (err) {
+      console.error('Error saving purchase request:', err);
+      alert('Failed to save purchase request.');
     }
   };
 
@@ -928,7 +976,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     setIsFormSending(true);
     try {
       const timestamp = new Date().toISOString();
-      const officeItems = items.filter(item => 
+      const officeItems = items.filter(item =>
         item.office && item.office.toLowerCase().trim() === selectedStockCardOffice.toLowerCase().trim()
       );
       const matchedItems = officeItems.filter(item => {
@@ -1300,7 +1348,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
         t.newBalance,
         (t.remarks || "").replace(/"/g, '""')
       ]);
-      const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
         + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
@@ -1321,7 +1369,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       alert("Please allow popups to print.");
       return;
     }
-    
+
     const txnRowsHtml = itemTxns.map(t => {
       const isAddition = t.transactionType.includes('Received') || (t.transactionType.includes('Adjustment') && t.quantity > 0);
       return `
@@ -1483,7 +1531,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     const controlNo = item.propertyNumber || `PAR-${new Date().getFullYear()}-${String(item.id.substring(0, 4)).toUpperCase()}`;
     const value = item.unitValue * item.qtyPhysicalCount;
     const acqDate = item.acquisitionDate ? new Date(item.acquisitionDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : (item.yearPurchased || "N/A");
-    
+
     // Create multiple empty grid rows to fill the sheet and simulate official spreadsheet length
     let emptyRowsHtml = "";
     for (let i = 0; i < 6; i++) {
@@ -1751,7 +1799,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     }
     const controlNo = `ICS-${new Date().getFullYear()}-${String(item.id.substring(0, 4)).toUpperCase()}`;
     const value = item.unitValue * item.qtyPhysicalCount;
-    
+
     // Create multiple empty grid rows to fill the sheet and simulate official spreadsheet length
     let emptyRowsHtml = "";
     for (let i = 0; i < 6; i++) {
@@ -2015,11 +2063,11 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       return;
     }
     const filteredParItems = deptItems.filter(i => i.unitValue >= 50000);
-    const rowsHtml = filteredParItems.length === 0 
+    const rowsHtml = filteredParItems.length === 0
       ? `<tr><td colspan="8" style="text-align: center; color: #555; padding: 15px;">No active High-Value PPE / Equipment (>= ₱50,000) logged in this office.</td></tr>`
       : filteredParItems.map((item, index) => {
-          const val = item.unitValue * item.qtyPhysicalCount;
-          return `
+        const val = item.unitValue * item.qtyPhysicalCount;
+        return `
             <tr>
               <td style="text-align: center;">${index + 1}</td>
               <td style="text-align: center;">${item.qtyPhysicalCount}</td>
@@ -2034,7 +2082,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               <td style="text-align: right; font-weight: bold; font-family: monospace;">₱${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             </tr>
           `;
-        }).join("");
+      }).join("");
 
     const totalVal = filteredParItems.reduce((sum, item) => sum + (item.unitValue * item.qtyPhysicalCount), 0);
     const htmlContent = `
@@ -2120,11 +2168,11 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       return;
     }
     const filteredIcsItems = deptItems.filter(i => i.unitValue < 50000);
-    const rowsHtml = filteredIcsItems.length === 0 
+    const rowsHtml = filteredIcsItems.length === 0
       ? `<tr><td colspan="8" style="text-align: center; color: #555; padding: 15px;">No active Semi-Expendable Supplies (< ₱50,000) logged in this office.</td></tr>`
       : filteredIcsItems.map((item, index) => {
-          const val = item.unitValue * item.qtyPhysicalCount;
-          return `
+        const val = item.unitValue * item.qtyPhysicalCount;
+        return `
             <tr>
               <td style="text-align: center;">${index + 1}</td>
               <td style="text-align: center;">${item.qtyPhysicalCount}</td>
@@ -2139,7 +2187,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               <td style="text-align: right; font-weight: bold; font-family: monospace;">₱${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             </tr>
           `;
-        }).join("");
+      }).join("");
 
     const totalVal = filteredIcsItems.reduce((sum, item) => sum + (item.unitValue * item.qtyPhysicalCount), 0);
     const htmlContent = `
@@ -2225,7 +2273,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       return;
     }
 
-    const rowsHtml = filteredItems.length === 0 
+    const rowsHtml = filteredItems.length === 0
       ? `
         <tr>
           <td colspan="8" style="border: 0.5pt solid black; padding: 12px; text-align: center; color: #64748b; font-family: sans-serif; font-size: 10px; font-weight: bold; text-transform: uppercase;">
@@ -2234,8 +2282,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
         </tr>
       `
       : filteredItems.map((item) => {
-          const calcs = getFinancialCalculations(item);
-          return `
+        const calcs = getFinancialCalculations(item);
+        return `
             <tr style="page-break-inside: avoid; break-inside: avoid;">
               <td style="border: 0.5pt solid black; padding: 6px 4px; font-family: monospace; font-size: 8.5pt;">
                 ${item.assetCode || "N/A: Pending"}
@@ -2266,7 +2314,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               </td>
             </tr>
           `;
-        }).join("");
+      }).join("");
 
     const totalSalvage = filteredComputed.reduce((s, c) => s + c.salvageValue, 0);
 
@@ -2547,7 +2595,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
       )}
 
       {/* Sidebar Navigation */}
-      <aside 
+      <aside
         onMouseEnter={() => setIsSidebarHovered(true)}
         onMouseLeave={() => setIsSidebarHovered(false)}
         className={`bg-white border-r border-gray-200 z-50 transform transition-[width,transform] duration-300 ease-in-out flex flex-col no-print shrink-0 
@@ -2557,9 +2605,9 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
         <div className="p-5 border-b border-gray-100 flex items-center justify-between overflow-hidden h-22">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-              <img 
-                src="/tibiaoLogo.jpg" 
-                alt="Tibiao Seal" 
+              <img
+                src="/tibiaoLogo.jpg"
+                alt="Tibiao Seal"
                 className="w-10 h-10 object-contain"
                 referrerPolicy="no-referrer"
               />
@@ -2631,11 +2679,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                 setActiveTab(tab.id as any);
                 setIsMobileSidebarOpen(false);
               }}
-              className={`w-full flex items-center transition-all duration-200 ${
-                activeTab === tab.id
-                  ? "bg-slate-900 text-white shadow-xl shadow-slate-900/20 font-black"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-bold"
-              } ${isSidebarHovered || isMobileSidebarOpen ? 'space-x-3 justify-between px-4 py-3 rounded-xl' : 'justify-center px-2 py-3 rounded-xl space-x-0'}`}
+              className={`w-full flex items-center transition-all duration-200 ${activeTab === tab.id
+                ? "bg-slate-900 text-white shadow-xl shadow-slate-900/20 font-black"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-bold"
+                } ${isSidebarHovered || isMobileSidebarOpen ? 'space-x-3 justify-between px-4 py-3 rounded-xl' : 'justify-center px-2 py-3 rounded-xl space-x-0'}`}
               title={!isSidebarHovered && !isMobileSidebarOpen ? tab.label : undefined}
             >
               <div className={`flex items-center ${isSidebarHovered || isMobileSidebarOpen ? 'space-x-3' : 'justify-center'}`}>
@@ -2658,11 +2705,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               </div>
               {tab.count !== undefined && tab.count > 0 && (isSidebarHovered || isMobileSidebarOpen) && (
                 <span
-                  className={`text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    tab.warning
-                      ? "bg-amber-500 text-slate-950 animate-pulse"
-                      : "bg-slate-200 text-slate-700"
-                  }`}
+                  className={`text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${tab.warning
+                    ? "bg-amber-500 text-slate-950 animate-pulse"
+                    : "bg-slate-200 text-slate-700"
+                    }`}
                 >
                   {tab.count}
                 </span>
@@ -2740,6 +2786,26 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
             {/* Executive Dashboard Tab Content */}
             {activeTab === "dashboard" && (
               <div className="space-y-8 animate-in duration-300">
+                <section className="bg-white p-6 rounded-[28px] border border-indigo-100 shadow-sm space-y-4">
+                  <div><h2 className="text-sm font-black uppercase tracking-wide text-slate-900">Pending PAR/ICS Compilation</h2><p className="text-xs text-slate-500">Review Office Head requisitions before preparing their official asset report.</p></div>
+                  {assetRequests.filter(r => r.requestType === 'REQUISITION' && r.status === 'Pending Accounting Review').length === 0 ? <p className="text-xs text-slate-400">No requisitions awaiting accounting review.</p> : assetRequests.filter(r => r.requestType === 'REQUISITION' && r.status === 'Pending Accounting Review').map(req => (
+                    <div key={req.id} className="border border-slate-100 rounded-2xl p-4 space-y-3">
+                      <div className="flex justify-between text-xs font-bold"><span>{req.quantity} × {req.itemArticle} · {req.office}</span><span>{req.requestNumber || req.id.slice(0, 8)}</span></div>
+                      {editingRequisitionId === req.id ? <div className="grid md:grid-cols-2 gap-2">
+                        <input aria-label="Item details" className="border rounded-lg p-2 text-xs" value={String(requisitionEdit.itemArticle ?? req.itemArticle)} onChange={e => setRequisitionEdit({ ...requisitionEdit, itemArticle: e.target.value })} />
+                        <input aria-label="Quantity" type="number" min={1} className="border rounded-lg p-2 text-xs" value={Number(requisitionEdit.quantity ?? req.quantity)} onChange={e => setRequisitionEdit({ ...requisitionEdit, quantity: Number(e.target.value) })} />
+                        <input aria-label="Unit value" type="number" min={0} step="0.01" className="border rounded-lg p-2 text-xs" value={Number(requisitionEdit.unitValue ?? req.unitValue ?? 0)} onChange={e => setRequisitionEdit({ ...requisitionEdit, unitValue: Number(e.target.value) })} />
+                        <textarea aria-label="Justification" className="border rounded-lg p-2 text-xs" value={String(requisitionEdit.justification ?? req.justification)} onChange={e => setRequisitionEdit({ ...requisitionEdit, justification: e.target.value })} />
+                        <button className="bg-indigo-600 text-white rounded-lg p-2 text-xs font-bold" onClick={async () => { const timestamp = new Date().toISOString(); const history = [...(req.history || []), { id: Math.random().toString(36).slice(2), timestamp, action: 'Accounting Requisition Edit', details: `Accounting edited requisition details: ${requisitionEdit.itemArticle ?? req.itemArticle}; quantity ${requisitionEdit.quantity ?? req.quantity}; unit value ${requisitionEdit.unitValue ?? req.unitValue ?? 0}; justification updated.` }]; await updateDoc(doc(db, 'requests', req.id), { ...requisitionEdit, history, accountingReviewedBy: userName, accountingReviewedAt: timestamp }); await addDoc(collection(db, 'system_logs'), { timestamp, user: userName, action: `Accounting edited Office Head requisition ${req.id}`, module: 'Requests Center' }); setEditingRequisitionId(null); }}>Save Review</button>
+                      </div> : <button className="text-indigo-700 text-xs font-bold" onClick={() => { setEditingRequisitionId(req.id); setRequisitionEdit({}); }}>Review / Edit</button>}
+                      <button className="ml-3 bg-slate-900 text-white rounded-lg px-3 py-2 text-xs font-bold" onClick={async () => { try { const existingSnap = await getDocs(query(collection(db, 'reports'), where('originalRequisitionId', '==', req.id))); if (!existingSnap.empty) { const existingDoc = existingSnap.docs[0]; const existingDraft = { id: existingDoc.id, ...existingDoc.data() } as GeneratedReport; setSeedDraftReport(existingDraft); setActiveTab('unified_reports'); return; } const rows = (req.items_snapshot?.length ? req.items_snapshot : [{ article: req.itemArticle, description: req.justification, unitOfMeasure: req.unit || 'unit', unitValue: req.unitValue || 0, qtyPropertyCard: req.quantity, qtyPhysicalCount: req.quantity, remarks: req.justification }]).map((item: any) => ({ ...item, tempId: Math.random().toString(36).slice(2) })); const mode = rows.some((item: any) => Number(item.unitValue) >= 50000) ? 'par' : 'ics'; const ref = doc(collection(db, 'reports')); const draft: any = { id: ref.id, report_type: mode.toUpperCase(), reportMode: mode, fund_cluster: '', report_date: new Date().toISOString().slice(0, 10), accountable_person: req.requestedBy, accountable_position: 'Office Head', accountability_date: new Date().toISOString().slice(0, 10), committee_chair: '', head_of_agency: '', head_position: 'Municipal Mayor', coa_rep: '', total_value: rows.reduce((n: number, i: any) => n + Number(i.unitValue || 0) * Number(i.qtyPropertyCard || i.quantity || 1), 0), item_count: rows.length, items_snapshot: rows, history: [{ id: Math.random().toString(36).slice(2), timestamp: new Date().toISOString(), action: 'Draft Created', details: `Draft generated from requisition ${req.requestNumber || req.id}` }], status: 'Draft', originalRequisitionId: req.id, created_at: new Date().toISOString(), icsNo: mode === 'ics' ? `ICS-${req.requestNumber || ref.id.slice(0, 6)}` : undefined, parNo: mode === 'par' ? `PAR-${req.requestNumber || ref.id.slice(0, 6)}` : undefined }; await setDoc(ref, draft); await updateDoc(doc(db, 'requests', req.id), { reportId: ref.id, reportType: mode.toUpperCase() }); setSeedDraftReport(draft); setActiveTab('unified_reports'); } catch (err) { console.error('Error generating draft:', err); alert('Failed to generate draft.'); } }}>Generate PAR/ICS Draft</button>
+                      <button className="ml-2 text-rose-700 text-xs font-bold" onClick={async () => { const timestamp = new Date().toISOString(); const remarks = window.prompt('Reason for returning this requisition for revision:') || 'Please revise the requisition details.'; await updateDoc(doc(db, 'requests', req.id), { status: 'Returned for Revision', responseRemarks: remarks, history: [...(req.history || []), { id: Math.random().toString(36).slice(2), timestamp, action: 'Returned for Revision', details: `Accounting returned requisition for revision: ${remarks}` }] }); await addDoc(collection(db, 'notifications'), { recipientRole: 'OFFICE_HEAD', recipientOffice: req.office, message: `Your requisition "${req.itemArticle}" was returned for revision by Accounting. ${remarks}`, timestamp, isRead: false, type: 'DECISION', reportId: req.id }); await addDoc(collection(db, 'system_logs'), { timestamp, user: userName, action: `Accounting returned requisition ${req.id} for revision: ${remarks}`, module: 'Requests Center' }); }}>Return for Revision</button>
+                    </div>
+                  ))}
+                </section>
+
+
+
                 {/* Financial Highlights */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 no-print">
                   <div
@@ -2750,7 +2816,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <h3 className="text-gray-500 text-[9px] font-black uppercase tracking-widest group-hover:text-slate-900 transition-colors truncate">
                         AGGREGATE COST BASE
                       </h3>
-                      <p 
+                      <p
                         className={`${getDynamicFontClass(aggregateCost)} font-black text-slate-900 font-brand mt-1 truncate`}
                         title={`₱${aggregateCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
@@ -2776,7 +2842,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <h3 className="text-gray-500 text-[9px] font-black uppercase tracking-widest group-hover:text-red-650 transition-colors truncate">
                         ACCUMULATED DEPRECIATION
                       </h3>
-                      <p 
+                      <p
                         className={`${getDynamicFontClass(aggregateAccumulatedDep)} font-black text-red-650 font-brand mt-1 truncate`}
                         title={`₱${aggregateAccumulatedDep.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
@@ -2802,7 +2868,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <h3 className="text-gray-500 text-[9px] font-black uppercase tracking-widest group-hover:text-emerald-750 transition-colors truncate">
                         CONSOLIDATED PPE CARRY VALUE
                       </h3>
-                      <p 
+                      <p
                         className={`${getDynamicFontClass(aggregateCarryingValue)} font-black text-emerald-700 font-brand mt-1 truncate`}
                         title={`₱${aggregateCarryingValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                       >
@@ -2828,7 +2894,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <h3 className="text-gray-500 text-[9px] font-black uppercase tracking-widest group-hover:text-amber-600 transition-colors truncate">
                         PENDING DELIVERY
                       </h3>
-                      <p 
+                      <p
                         className="text-lg sm:text-xl lg:text-2xl font-black text-amber-600 font-brand mt-1 truncate"
                         title={`${pendingDeliveryCount} items pending delivery / buying`}
                       >
@@ -2886,7 +2952,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                     {carryingValuePerDept
                       .filter((dept) => selectedDeptCarryingFilter === "ALL" || dept.fullName === selectedDeptCarryingFilter)
                       .map((dept, idx) => (
-                        <div 
+                        <div
                           key={dept.fullName || idx}
                           className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 transition-all space-y-3 cursor-pointer group"
                           onClick={() => {
@@ -3148,11 +3214,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                   </span>
                                 </td>
                                 <td className="py-4 text-center">
-                                  <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${
-                                    (item.unitValue >= 15000)
-                                      ? "bg-indigo-50 text-indigo-700 border-indigo-150 font-bold"
-                                      : "bg-emerald-50 text-emerald-850 border-emerald-150 font-bold"
-                                  }`}>
+                                  <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase border ${(item.unitValue >= 15000)
+                                    ? "bg-indigo-50 text-indigo-700 border-indigo-150 font-bold"
+                                    : "bg-emerald-50 text-emerald-850 border-emerald-150 font-bold"
+                                    }`}>
                                     {item.unitValue >= 15000 ? "PAR (Asset)" : "ICS (Semi-Exp)"}
                                   </span>
                                 </td>
@@ -3352,16 +3417,16 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                             {Math.max(
                               formAcquisitionCost * 0.05,
                               formAcquisitionCost -
-                                ((formAcquisitionCost -
-                                  formAcquisitionCost * 0.05) /
-                                  formUsefulLife) *
-                                  Math.max(
-                                    0,
-                                    new Date().getFullYear() -
-                                      new Date(
-                                        formAcquisitionDate,
-                                      ).getFullYear(),
-                                  ),
+                              ((formAcquisitionCost -
+                                formAcquisitionCost * 0.05) /
+                                formUsefulLife) *
+                              Math.max(
+                                0,
+                                new Date().getFullYear() -
+                                new Date(
+                                  formAcquisitionDate,
+                                ).getFullYear(),
+                              ),
                             ).toLocaleString(undefined, {
                               maximumFractionDigits: 1,
                             })}
@@ -3433,7 +3498,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                             </div>
                             <h3 className="font-bold text-gray-800 uppercase tracking-tight font-brand">{office.name}</h3>
                             <p className="text-xs text-gray-400 font-mono mt-1 uppercase tracking-wider">Office Code: {office.code}</p>
-                            
+
                             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                               <span className="text-[9px] font-bold uppercase text-blue-600 tracking-wider font-brand">View Office Directory Ledger</span>
                               <svg className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3532,8 +3597,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                     const isPAR = selectedDocumentType === "PAR";
                     const reportTitle = isPAR ? "PROPERTY ACKNOWLEDGEMENT RECEIPT" : "INVENTORY CUSTODIAN SLIP";
                     const reportSubtitle = isPAR ? "Annex B" : "Appendix 59";
-                    
-                    const officeItems = items.filter(item => 
+
+                    const officeItems = items.filter(item =>
                       item.office && item.office.toLowerCase().trim() === selectedStockCardOffice.toLowerCase().trim()
                     );
                     const matchedItems = officeItems.filter(item => {
@@ -3586,7 +3651,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                         <div className="bg-white p-8 md:p-12 rounded-[36px] border border-gray-100 shadow-sm print:p-0 print:border-none print:shadow-none print:bg-transparent">
                           <div className="space-y-6 font-serif select-text">
                             <div className="text-right italic font-black text-[12pt] text-gray-400">{reportSubtitle}</div>
-                            
+
                             <div className="text-center font-bold text-[9pt] uppercase text-gray-400 tracking-wider">
                               REPUBLIC OF THE PHILIPPINES, PROVINCE OF ANTIQUE
                             </div>
@@ -3675,8 +3740,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                           <td className="border border-black p-2.5 text-center uppercase font-mono text-[8pt]">{item.unitOfMeasure || "unit"}</td>
                                           {!isPAR && (
                                             <>
-                                              <td className="border border-black p-2.5 text-right font-mono">₱{cost.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                              <td className="border border-black p-2.5 text-right font-mono font-bold bg-neutral-50/50">₱{(qty * cost).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                              <td className="border border-black p-2.5 text-right font-mono">₱{cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                              <td className="border border-black p-2.5 text-right font-mono font-bold bg-neutral-50/50">₱{(qty * cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                             </>
                                           )}
                                           <td className="border border-black p-2.5">
@@ -3693,7 +3758,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                           </td>
                                           {isPAR && (
                                             <td className="border border-black p-2.5 text-right font-mono font-extrabold text-blue-900">
-                                              ₱{cost.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                              ₱{cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                             </td>
                                           )}
                                         </tr>
@@ -3871,9 +3936,9 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                 {/* Print paper layout preview */}
                 <div id="report-canvas" className="p-12 bg-white border border-gray-200 rounded-[28px] max-w-5xl mx-auto shadow-inner space-y-8 print:p-0 print:border-none print:shadow-none font-serif text-slate-950">
                   <div className="text-center space-y-1 flex flex-col items-center">
-                    <img 
-                      src="/tibiaoLogo.jpg" 
-                      alt="Tibiao Seal" 
+                    <img
+                      src="/tibiaoLogo.jpg"
+                      alt="Tibiao Seal"
                       className="w-14 h-14 object-contain mb-3"
                       referrerPolicy="no-referrer"
                     />
@@ -3899,17 +3964,17 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                     {(officeFilter !== "ALL" ||
                       fundingFilter !== "ALL" ||
                       searchTerm) && (
-                      <div className="text-[8.5px] uppercase tracking-wider text-indigo-700 font-bold font-sans pt-1 border border-indigo-100 bg-indigo-50/10 py-1 rounded inline-block px-3 mt-1">
-                        REPORT SCOPE:{" "}
-                        {officeFilter !== "ALL"
-                          ? `Office: [${officeFilter}]`
-                          : ""}
-                        {fundingFilter !== "ALL"
-                          ? ` | Funding: [${fundingFilter}]`
-                          : ""}
-                        {searchTerm ? ` | Keyword Query: "${searchTerm}"` : ""}
-                      </div>
-                    )}
+                        <div className="text-[8.5px] uppercase tracking-wider text-indigo-700 font-bold font-sans pt-1 border border-indigo-100 bg-indigo-50/10 py-1 rounded inline-block px-3 mt-1">
+                          REPORT SCOPE:{" "}
+                          {officeFilter !== "ALL"
+                            ? `Office: [${officeFilter}]`
+                            : ""}
+                          {fundingFilter !== "ALL"
+                            ? ` | Funding: [${fundingFilter}]`
+                            : ""}
+                          {searchTerm ? ` | Keyword Query: "${searchTerm}"` : ""}
+                        </div>
+                      )}
                   </div>
 
                   <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -3999,8 +4064,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                         <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
                           <td colSpan={3} className="p-3 text-right uppercase">
                             {officeFilter !== "ALL" ||
-                            fundingFilter !== "ALL" ||
-                            searchTerm
+                              fundingFilter !== "ALL" ||
+                              searchTerm
                               ? `FILTERED LEDGER SUBTOTALS (${filteredItems.length} ITEMS)`
                               : "GRAND ACCREDITED LEDGER TOTALS"}
                           </td>
@@ -4123,7 +4188,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Submit official PRs to Admin & Engineering for review and cargo dispatch</p>
                     </div>
 
-                    <form 
+                    <form
                       onSubmit={async (e) => {
                         e.preventDefault();
                         if (!newTitle.trim() || !newRequestedPerson.trim() || !newSupplier.trim() || !newExpectedDeliveryDate.trim() || !newDatePurchased.trim() || newUnitCost === "") {
@@ -4409,22 +4474,22 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                         </label>
                         <div className="relative z-50">
                           <input
-                             type="text"
-                             value={assetSearchQuery}
-                             onChange={(e) => {
-                               setAssetSearchQuery(e.target.value);
-                               setShowAssetDropdown(true);
-                             }}
-                             onFocus={() => setShowAssetDropdown(true)}
-                             placeholder="Search registered assets to auto-fill..."
-                             className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs font-bold leading-none outline-none transition-all text-slate-700 placeholder-slate-400 font-sans"
+                            type="text"
+                            value={assetSearchQuery}
+                            onChange={(e) => {
+                              setAssetSearchQuery(e.target.value);
+                              setShowAssetDropdown(true);
+                            }}
+                            onFocus={() => setShowAssetDropdown(true)}
+                            placeholder="Search registered assets to auto-fill..."
+                            className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-xl px-3 py-2 text-xs font-bold leading-none outline-none transition-all text-slate-700 placeholder-slate-400 font-sans"
                           />
                         </div>
 
                         {/* Click-outside backdrop */}
                         {showAssetDropdown && (
-                          <div 
-                            className="fixed inset-0 z-40" 
+                          <div
+                            className="fixed inset-0 z-40"
                             onClick={() => setShowAssetDropdown(false)}
                           />
                         )}
@@ -4434,7 +4499,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                           <div className="absolute left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-50 divide-y divide-slate-100">
                             {(() => {
                               const query = assetSearchQuery.toLowerCase();
-                              const filtered = (items || []).filter(item => 
+                              const filtered = (items || []).filter(item =>
                                 (item.article || "").toLowerCase().includes(query) ||
                                 (item.description || "").toLowerCase().includes(query) ||
                                 (item.category || "").toLowerCase().includes(query) ||
@@ -4443,7 +4508,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
 
                               if (filtered.length === 0) {
                                 return (
-                                    <div className="p-3.5 text-center text-[10px] text-slate-400">
+                                  <div className="p-3.5 text-center text-[10px] text-slate-400">
                                     No matching registered assets found
                                   </div>
                                 );
@@ -4457,7 +4522,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                     setNewTitle(item.article || '');
                                     setNewUnit(item.unitOfMeasure || 'pcs');
                                     setNewDetails(item.description || '');
-                                    
+
                                     // Set category mapping
                                     const mappedCat = (() => {
                                       const cat = (item.category || "").toLowerCase();
@@ -4476,7 +4541,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                                       return "Other Equipment";
                                     })();
                                     setNewEquipmentType(mappedCat);
-                                    
+
                                     // Auto populate amount
                                     if (item.unitValue) {
                                       setNewAmount(item.unitValue);
@@ -4486,11 +4551,11 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
 
                                     // Pre-populate target office
                                     if (item.office) {
-                                      const mappedOffice = (item.office || "").toLowerCase().includes("engineer") 
-                                        ? "Municipal Engineering" 
-                                        : (item.office || "").toLowerCase().includes("mayor") 
-                                        ? "Mayor's Office" 
-                                        : "Accounting Office";
+                                      const mappedOffice = (item.office || "").toLowerCase().includes("engineer")
+                                        ? "Municipal Engineering"
+                                        : (item.office || "").toLowerCase().includes("mayor")
+                                          ? "Mayor's Office"
+                                          : "Accounting Office";
                                       setNewTargetOffice(mappedOffice);
                                     }
 
@@ -4531,12 +4596,12 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                           Item Name / Article *
                         </label>
                         <input
-                           type="text"
-                           required
-                           value={newTitle}
-                           onChange={(e) => setNewTitle(e.target.value)}
-                           placeholder="e.g., Heavy-Duty Desktop Computers"
-                           className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold leading-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800/80 transition-all text-white"
+                          type="text"
+                          required
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          placeholder="e.g., Heavy-Duty Desktop Computers"
+                          className="w-full bg-slate-800 border border-slate-750 rounded-xl px-4 py-3 text-xs font-bold leading-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800/80 transition-all text-white"
                         />
                       </div>
 
@@ -4795,391 +4860,725 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                    {(() => {
-                      const registeredCount = actRequests.filter(r => r.status === 'Completed' || r.status === 'RECEIVED' || r.status === 'DISTRIBUTED').length;
-                      const pendingCount = actRequests.filter(r => r.status === 'Pending Delivery' || r.status === 'PENDING_RECEIVING').length;
-                      const actionNeededCount = actRequests.filter(r => r.status === 'PENDING' || r.status === 'Returned' || r.status === 'REJECTED' || r.status === 'Rejected').length;
+                {/* PURCHASE SUBMISSIONS FROM OFFICE HEADS */}
+                <section className="bg-white p-6 rounded-[28px] border border-slate-200/80 shadow-sm space-y-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block animate-pulse"></span>
+                        <h3 className="text-sm md:text-base font-black uppercase tracking-wider text-slate-900 font-brand">
+                          PURCHASE SUBMISSIONS FROM OFFICE HEADS
+                        </h3>
+                      </div>
+                      <p className="text-[10px] md:text-xs text-slate-500 font-medium max-w-3xl">
+                        Review submitted purchase forms, approve transactions, generate linked single-item PAR/ICS documents, finalize/lock reports, and dispatch to Admin/Engineer for Cargo Receiving.
+                      </p>
+                    </div>
 
-                      const filteredRequests = actRequests.filter(req => {
-                        if (procurementStatusFilter === 'REGISTERED') {
-                          return req.status === 'Completed' || req.status === 'RECEIVED' || req.status === 'DISTRIBUTED';
-                        }
-                        if (procurementStatusFilter === 'PENDING') {
-                          return req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING';
-                        }
-                        if (procurementStatusFilter === 'ACTION_NEEDED') {
-                          return req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected';
-                        }
-                        return true;
-                      });
+                    {/* Stepper Header */}
+                    <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto pb-1 md:pb-0 text-[9px] font-black uppercase">
+                      <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 shadow-sm">
+                        1. Accounting Review
+                      </span>
+                      <span className="text-slate-300 font-extrabold">–</span>
+                      <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        2. PAR/ICS Gen
+                      </span>
+                      <span className="text-slate-300 font-extrabold">–</span>
+                      <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                        3. Finalized
+                      </span>
+                      <span className="text-slate-300 font-extrabold">–</span>
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        4. Admin Receiving
+                      </span>
+                    </div>
+                  </div>
 
-                      return (
-                        <>
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                              Outgoing Request Logs ({filteredRequests.length} of {actRequests.length})
-                            </div>
-                            <span className="text-[9px] text-indigo-600 bg-indigo-50 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                              Interactive Tracker
-                            </span>
-                          </div>
+                  {/* Submissions List */}
+                  <div className="space-y-4">
+                    {assetRequests.filter(r =>
+                      r.status === 'Pending Accounting Review' ||
+                      r.status === 'DECLINED' ||
+                      r.status === 'REJECTED' ||
+                      r.status === ('Rejected' as any) ||
+                      r.status === 'Returned for Revision'
+                    ).length === 0 ? (
+                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          No purchase submissions from Office Heads awaiting review.
+                        </p>
+                      </div>
+                    ) : (
+                      assetRequests.filter(r =>
+                        r.status === 'Pending Accounting Review' ||
+                        r.status === 'DECLINED' ||
+                        r.status === 'REJECTED' ||
+                        r.status === ('Rejected' as any) ||
+                        r.status === 'Returned for Revision'
+                      ).map(req => {
+                        const isPending = req.status === 'Pending Accounting Review';
+                        const isDeclined = req.status === 'DECLINED' || req.status === 'REJECTED' || req.status === ('Rejected' as any);
 
-                          {/* Quick visual tracker metrics - filterable */}
-                          <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2 rounded-[20px] border border-slate-100/80">
-                            <button
-                              type="button"
-                              onClick={() => setProcurementStatusFilter('ALL')}
-                              className={`p-2 rounded-xl text-center cursor-pointer transition-all ${
-                                procurementStatusFilter === 'ALL'
-                                  ? 'bg-white shadow-sm border border-slate-200 text-slate-800 font-extrabold'
-                                  : 'hover:bg-white/40 text-slate-500 font-semibold'
-                              }`}
-                            >
-                              <div className="text-[13px] font-black">{actRequests.length}</div>
-                              <div className="text-[7.5px] uppercase tracking-wider block sm:inline-block">All</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProcurementStatusFilter('REGISTERED')}
-                              className={`p-2 rounded-xl text-center cursor-pointer transition-all ${
-                                procurementStatusFilter === 'REGISTERED'
-                                  ? 'bg-emerald-600 text-white shadow-sm font-extrabold'
-                                  : 'hover:bg-white/40 text-emerald-600 font-bold bg-emerald-50/50'
-                              }`}
-                            >
-                              <div className="text-[13px] font-black">{registeredCount}</div>
-                              <div className="text-[7.5px] uppercase tracking-wider">Registered</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProcurementStatusFilter('PENDING')}
-                              className={`p-2 rounded-xl text-center cursor-pointer transition-all ${
-                                procurementStatusFilter === 'PENDING'
-                                  ? 'bg-amber-500 text-white shadow-sm font-extrabold'
-                                  : 'hover:bg-white/40 text-amber-700 font-bold bg-amber-50/50'
-                              }`}
-                            >
-                              <div className="text-[13px] font-black">{pendingCount}</div>
-                              <div className="text-[7.5px] uppercase tracking-wider">Pending Del.</div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setProcurementStatusFilter('ACTION_NEEDED')}
-                              className={`p-2 rounded-xl text-center cursor-pointer transition-all ${
-                                procurementStatusFilter === 'ACTION_NEEDED'
-                                  ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
-                                  : 'hover:bg-white/40 text-slate-600 font-bold bg-slate-100'
-                              }`}
-                            >
-                              <div className="text-[13px] font-black">{actionNeededCount}</div>
-                              <div className="text-[7.5px] uppercase tracking-wider">Drafts/Returns</div>
-                            </button>
-                          </div>
-
-                          {loadingActReqs ? (
-                            <div className="bg-white p-12 rounded-[28px] border border-slate-100 flex flex-col items-center justify-center">
-                              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                              <p className="mt-3 text-[9px] font-black uppercase tracking-widest text-gray-400 animate-pulse">Loading active logs...</p>
-                            </div>
-                          ) : filteredRequests.length === 0 ? (
-                            <div className="bg-white p-12 text-center border border-dashed border-slate-200 rounded-[28px]">
-                              <p className="text-gray-400 text-xs font-black uppercase tracking-widest">No matching logs found</p>
-                              <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">There are no requests matching the selected category.</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              {filteredRequests.map(req => (
-                          <div 
+                        return (
+                          <div
                             key={req.id}
-                            className={`bg-white p-6 rounded-[28px] border transition-all ${
-                              req.status === 'PENDING' ? 'border-amber-100' :
-                              req.status === 'APPROVED' ? 'border-emerald-100' :
-                              'border-red-100'
-                            }`}
+                            className="border border-slate-100 rounded-2xl p-5 space-y-4 bg-slate-50/40 hover:bg-white hover:shadow-md transition-all"
                           >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                                  req.status === 'PENDING' ? 'bg-slate-50 text-slate-600 border-slate-300' :
-                                  (req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING') ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                  req.status === 'Returned' ? 'bg-amber-50 text-amber-800 border-amber-350 animate-pulse' :
-                                  (req.status === 'Completed' || req.status === 'RECEIVED') ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-extrabold' :
-                                  req.status === 'DISTRIBUTED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                                  (req.status === 'REJECTED' || req.status === 'Rejected') ? 'bg-rose-50 text-rose-700 border-rose-250 font-extrabold' :
-                                  'bg-red-50 text-red-700 border-red-200'
-                                }`}>
-                                  {req.status === 'PENDING' ? 'PREPARED - DRAFT' : 
-                                   (req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING') ? 'SENT - PENDING DELIVERY' : 
-                                   req.status === 'Returned' ? 'RETURNED FOR CORRECTION' : 
-                                   req.status === 'Completed' ? 'COMPLETED (CARGO RECEIVED)' :
-                                   req.status === 'RECEIVED' ? 'IN ENGINEER CARGO' : 
-                                   req.status === 'DISTRIBUTED' ? 'FULLY DISTRIBUTED' : 
-                                   req.status === 'REJECTED' || req.status === 'Rejected' ? 'REJECTED & RETURNED' : 
-                                   req.status}
+                            {/* Card Header row */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100/80 pb-3">
+                              <div className="flex items-center gap-3">
+                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${isPending
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200 animate-pulse'
+                                  : isDeclined
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                  {req.status}
                                 </span>
-
-                                <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
-                                  req.priority === 'High' ? 'bg-rose-50 text-rose-700 border-rose-250 font-black' :
-                                  req.priority === 'Medium' ? 'bg-sky-50 text-sky-700 border-sky-200' :
-                                  'bg-slate-50 text-slate-500 border-slate-200'
-                                }`}>
-                                  {req.priority} Priority
+                                <span className="text-[11px] font-black tracking-wide text-slate-900 font-mono">
+                                  REF: {(req as any).slipNumber || req.requestNumber || req.id.slice(0, 8)}
                                 </span>
-
-                                {req.amount !== undefined && (
-                                  <span className="bg-slate-50 text-indigo-700 border border-slate-100 px-2 rounded-full text-[8.5px] font-black">
-                                    ₱{req.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                  </span>
-                                )}
                               </div>
-
-                              <span className="text-[8.5px] text-slate-400 font-bold uppercase">
-                                {new Date(req.submittedAt).toLocaleDateString()} at {new Date(req.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                Submitted: {new Date((req as any).submittedAt || req.requestedAt || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}, {new Date((req as any).submittedAt || req.requestedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
 
-                            <div className="space-y-3 mt-2">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <span className="text-[8px] font-black text-slate-400 block uppercase tracking-widest">
-                                    {req.slipNumber ? `PRS Slip ${req.slipNumber}` : 'Requested Item'} ({req.equipmentType || 'Equipment'})
-                                  </span>
-                                  <h4 className="text-sm font-black text-slate-900 uppercase mt-0.5">{req.title}</h4>
+                            {/* 3-Column details grid matching screenshot */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-medium">
+                              {/* Item Article & Description */}
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                  ITEM ARTICLE &amp; DESCRIPTION
+                                </span>
+                                <h4 className="text-sm font-black text-slate-900 uppercase">
+                                  {req.itemArticle || (req as any).title || 'Equipment Item'}
+                                </h4>
+                                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                  {req.justification || (req as any).details || 'N/A'}
+                                </p>
+                              </div>
+
+                              {/* Quantity & Unit Cost */}
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                  QUANTITY &amp; UNIT COST
+                                </span>
+                                <div className="text-xs font-bold text-slate-700">
+                                  {req.quantity || 1} unit(s) @ ₱{((req as any).unitCost || req.unitValue || (req.amount ? req.amount / (req.quantity || 1) : 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <span className="text-[8px] font-black text-slate-400 block uppercase tracking-widest">Quantity</span>
-                                  <span className="text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg block mt-0.5">
-                                    {req.quantity} {req.unit || 'pcs'}
-                                  </span>
+                                <div className="text-sm font-black text-slate-900">
+                                  Total: ₱{(req.amount || ((req.unitValue || 0) * (req.quantity || 1))).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-[10.5px]">
-                                <div>
-                                  <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block">Accountant Provided Budget</span>
-                                  <span className="font-brand font-black text-indigo-700 mt-0.5 block">
-                                    ₱{req.amount !== undefined && req.amount !== null ? Number(req.amount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "None"}
-                                  </span>
+                              {/* Purchaser & Department */}
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">
+                                  PURCHASER &amp; DEPARTMENT
+                                </span>
+                                <div className="text-xs font-bold text-slate-900">
+                                  {req.requestedBy || 'Office Head'}
                                 </div>
-                                <div>
-                                  <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block">Requesting Person Name</span>
-                                  <span className="font-extrabold text-slate-800 uppercase mt-0.5 block">
-                                    {req.requestedBy || req.submittedBy || 'N/A'}
-                                  </span>
+                                <div className="text-xs text-slate-600 font-semibold uppercase">
+                                  {req.office || 'Department'}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-medium">
+                                  Fund: {(req as any).fundingSource || (req as any).fund || 'General Fund'}
                                 </div>
                               </div>
-
-                              {req.details && (
-                                <div>
-                                  <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block mb-0.5">Purpose / Specifications</span>
-                                  <p className="text-slate-600 text-[11px] whitespace-pre-line leading-relaxed italic pr-2">
-                                    "{req.details}"
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Receiving Timeline tracker */}
-
-
-                              {/* Cargo details displayed automatically */}
-                              {(req.status === 'PENDING_RECEIVING' || req.status === 'Pending Delivery') && (
-                                <div className="mt-2 p-3 bg-amber-50/50 rounded-2xl border border-amber-100 text-[10.5px] text-amber-800 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>⏳ SENT - PENDING DELIVERY</span>
-                                  </div>
-                                  <div>Sent Date: {req.sentToEngineerAt ? new Date(req.sentToEngineerAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Status: Pending physical cargo receiving & delivery verification.</div>
-                                </div>
-                              )}
-
-                              {req.status === 'RECEIVED' && (
-                                <div className="mt-2 p-3 bg-blue-50/50 rounded-2xl border border-blue-100 text-[10.5px] text-blue-900 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>✓ RECEIVED IN CARGO BY ENGINEER</span>
-                                  </div>
-                                  <div>Received Date: {req.receivedAt ? new Date(req.receivedAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Verified By: {req.receivedBy || 'Municipal Engineer'}</div>
-                                  <div>Allocation Remaining: {req.quantity - (req.distributedQty || 0)} out of {req.quantity} units</div>
-                                </div>
-                              )}
-
-                              {req.status === 'DISTRIBUTED' && (
-                                <div className="mt-2 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100 text-[10.5px] text-emerald-800 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>✓ FULLY DISTRIBUTED & COMMITTED</span>
-                                  </div>
-                                  <div>Received & Processed by: {req.receivedBy || 'Municipal Engineer'}</div>
-                                  <div>Status: Fully allocated to requested department(s).</div>
-                                </div>
-                              )}
-
-                              {req.distributions && req.distributions.length > 0 && (
-                                <div className="mt-2 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] space-y-1.5">
-                                  <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block border-b border-slate-150 pb-1">
-                                    Physical Allocations Log ({req.distributedQty || 0} unit(s) distributed)
-                                  </span>
-                                  <div className="space-y-1 text-[9.5px]">
-                                    {req.distributions.map((dist: any, idx: number) => (
-                                      <div key={idx} className="flex justify-between items-center font-bold text-slate-600">
-                                        <span>→ Distributed {dist.quantity} unit(s) to <strong className="text-slate-800">{dist.office}</strong></span>
-                                        <span className="text-gray-400 font-mono text-[8.5px]">{new Date(dist.date).toLocaleDateString()}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Approval details displayed automatically */}
-                              {req.status === 'APPROVED' && (
-                                <div className="mt-2 p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-[10.5px] text-emerald-800 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>✓ APPROVED BY ENGINEER</span>
-                                  </div>
-                                  <div>Approved Date: {req.approvedAt ? new Date(req.approvedAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Approved By: {req.approvedBy || 'Municipal Engineer'}</div>
-                                </div>
-                              )}
-
-                              {/* Returned details displayed automatically */}
-                              {req.status === 'Returned' && (
-                                <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-250 text-[10.5px] text-amber-900 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-1">
-                                    <span>⚠ RETURNED FOR CORRECTION</span>
-                                  </div>
-                                  <div>Returned Date: {req.rejectedAt ? new Date(req.rejectedAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Returned By: {req.rejectedBy || 'Municipal Engineer'}</div>
-                                  {req.rejectionReason && (
-                                    <div className="text-amber-950 italic mt-1 font-extrabold">"Remarks: {req.rejectionReason}"</div>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Completed details displayed automatically */}
-                              {req.status === 'Completed' && (
-                                <div className="mt-2 p-3 bg-emerald-50 rounded-2xl border border-emerald-150 text-[10.5px] text-emerald-800 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>✓ CARGO DELIVERED & RECEIVED SUCCESSFULLY</span>
-                                  </div>
-                                  <div>Received Date: {req.receivedAt ? new Date(req.receivedAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Received By: {req.receivedBy || 'Municipal Engineer'}</div>
-                                  <div>Status: Officially received and deposited in Warehouse and {req.targetOffice}.</div>
-                                </div>
-                              )}
-
-                              {/* Rejection details displayed automatically */}
-                              {(req.status === 'REJECTED' || req.status === 'Rejected') && (
-                                <div className="mt-2 p-3 bg-rose-50 rounded-2xl border border-rose-100 text-[10.5px] text-rose-800 font-bold space-y-1">
-                                  <div className="text-[8px] font-black text-rose-600 uppercase tracking-widest flex items-center gap-1">
-                                    <span>✗ REJECTED BY ENGINEER</span>
-                                  </div>
-                                  <div>Rejected Date: {req.rejectedAt ? new Date(req.rejectedAt).toLocaleDateString() : 'N/A'}</div>
-                                  <div>Rejected By: {req.rejectedBy || 'Municipal Engineer'}</div>
-                                  {req.rejectionReason && (
-                                    <div className="text-rose-950 italic mt-1 font-extrabold">"Reason: {req.rejectionReason}"</div>
-                                  )}
-                                </div>
-                              )}
                             </div>
 
-                            {/* Response remarks display */}
-                            {req.adminRemarks && (
-                              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[10px] text-slate-700 font-bold mt-3">
-                                <span className="text-[8px] font-black uppercase text-slate-400 block mb-0.5">Admin Response remarks:</span>
-                                <p className="italic">"{req.adminRemarks}"</p>
+                            {/* Remarks box (if rejected / returned) */}
+                            {(req.responseRemarks || (req as any).rejectionReason || req.adminRemarks) && (
+                              <div className="p-3 bg-rose-50/70 rounded-xl border border-rose-100 space-y-1">
+                                <span className="text-[8px] font-black text-rose-600 uppercase tracking-widest block">
+                                  ACCOUNTING REMARKS / REASON:
+                                </span>
+                                <p className="text-xs text-rose-800 font-bold">
+                                  {req.responseRemarks || (req as any).rejectionReason || req.adminRemarks}
+                                </p>
                               </div>
                             )}
 
-                            {/* Action buttons bar */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 mt-4">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <button
-                                  onClick={() => openIndividualReceiptModal(req)}
-                                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                                  <span>Generate &amp; Submit {(req.unitCost !== undefined && req.unitCost !== null && req.unitCost !== '' ? Number(req.unitCost) : ((Number(req.amount) || 0) / (Number(req.quantity) || 1))) >= 50000 ? 'PAR (≥₱50k)' : 'ICS (<₱50k)'} Receipt</span>
-                                </button>
-
-                                {req.parIcsStatus === 'Submitted' && (
-                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                    <span>{req.parIcsType || 'PAR/ICS'} Submitted ({req.parIcsNumber})</span>
-                                  </span>
-                                )}
-                              </div>
+                            {/* Action buttons matching screenshot */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                              <button
+                                type="button"
+                                className="text-indigo-600 hover:text-indigo-800 text-xs font-black uppercase tracking-wider underline cursor-pointer"
+                                onClick={() => {
+                                  setEditingRequisitionId(editingRequisitionId === req.id ? null : req.id);
+                                  setRequisitionEdit(req);
+                                }}
+                              >
+                                Edit Details
+                              </button>
 
                               <div className="flex items-center gap-2">
-                                {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
-                                  <button
-                                    onClick={() => handleSendToEngineer(req)}
-                                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                  >
-                                    Send to Engineer
-                                  </button>
-                                )}
-                                {(req.status === 'PENDING' || req.status === 'Pending Delivery' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
-                                  <button
-                                    onClick={() => {
-                                      setEditingActReq(req);
-                                      setNewTitle(req.itemArticle || req.title || '');
-                                      setNewDetails(req.details || req.justification || '');
-                                      setNewAmount(req.amount !== undefined && req.amount !== null ? req.amount : '');
-                                      setNewQuantity(req.quantity || 1);
-                                      setNewRequestedPerson(req.requestedBy || req.submittedBy || userName || '');
-                                      setNewPriority(req.priority || 'Medium');
-                                      setNewTargetOffice(req.targetOffice || "Municipal Engineering");
-                                      setNewTargetOfficeHead(req.targetOfficeHead || req.officeHead || '');
-                                      setNewPreparedBy(req.preparedBy || req.userName || userName || '');
-                                      setNewSlipNumber(req.slipNumber || '');
-                                      setNewSupplier(req.supplier || '');
-                                      setNewPONumber(req.poNumber || '');
-                                      setNewInvoiceNumber(req.invoiceNumber || '');
-                                      setNewUnitCost(req.unitCost !== undefined && req.unitCost !== null ? req.unitCost : '');
-                                      setNewExpectedDeliveryDate(req.expectedDeliveryDate || '');
-                                      setNewDatePurchased(req.datePurchased || '');
-                                      setNewFundingSource(req.fundingSource || 'General Fund');
-                                    }}
-                                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                  >
-                                    Modify / Edit
-                                  </button>
-                                )}
-                                {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
-                                  <button
-                                    onClick={async () => {
-                                      if (!confirm("Are you sure you want to delete this procurement request?")) return;
-                                      try {
-                                        await deleteDoc(doc(db, "requests", req.id));
+                                <button
+                                  type="button"
+                                  className="bg-emerald-800 hover:bg-emerald-900 text-white font-black py-2.5 px-5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95 flex items-center gap-1.5"
+                                  onClick={async () => {
+                                    if (!window.confirm(`Approve purchase form "${req.itemArticle || (req as any).title}" and forward to Admin/Engineer?`)) return;
+                                    try {
+                                      const timestamp = new Date().toISOString();
+                                      const docRef = doc(db, 'requests', req.id);
+                                      const history = [...(req.history || []), {
+                                        id: Math.random().toString(36).slice(2),
+                                        timestamp,
+                                        action: 'Accounting Approved',
+                                        details: `Purchase request approved by Accounting (${userName}) and forwarded to Admin/Engineer for final processing.`
+                                      }];
+                                      await updateDoc(docRef, {
+                                        status: 'Pending Engineer/Admin Review',
+                                        accountingReviewedBy: userName,
+                                        accountingReviewedAt: timestamp,
+                                        handledBy: `${userName} (Accounting)`,
+                                        handledAt: timestamp,
+                                        history
+                                      });
+                                      await addDoc(collection(db, 'notifications'), {
+                                        recipientRole: 'ADMIN',
+                                        message: `PURCHASE REQUEST APPROVED BY ACCOUNTING: "${req.itemArticle || (req as any).title}" (Slip: ${(req as any).slipNumber || req.requestNumber || req.id.slice(0, 8)}, Qty: ${req.quantity}) from ${req.office}.`,
+                                        timestamp,
+                                        isRead: false,
+                                        type: 'NEW_REQUEST',
+                                        reportId: req.id
+                                      });
+                                      await addDoc(collection(db, 'notifications'), {
+                                        recipientRole: 'OFFICE_HEAD',
+                                        recipientOffice: req.office,
+                                        message: `Your purchase request "${req.itemArticle || (req as any).title}" was APPROVED by Accounting and forwarded to Admin/Engineer.`,
+                                        timestamp,
+                                        isRead: false,
+                                        type: 'DECISION',
+                                        reportId: req.id
+                                      });
+                                      await addDoc(collection(db, 'system_logs'), {
+                                        timestamp,
+                                        user: userName,
+                                        action: `Accounting approved purchase request "${req.itemArticle || (req as any).title}" from ${req.office}.`,
+                                        module: 'Accounting PR Review'
+                                      });
+                                      alert('Purchase form approved and forwarded successfully!');
+                                    } catch (err) {
+                                      console.error('Error approving PR:', err);
+                                      alert('Failed to approve purchase form.');
+                                    }
+                                  }}
+                                >
+                                  ✓ Approve Purchase Form
+                                </button>
 
-                                        await addDoc(collection(db, "system_logs"), {
-                                          timestamp: new Date().toISOString(),
-                                          user: userName,
-                                          action: `Accountant deleted Procurement Request: "${req.itemArticle || req.title}"`,
-                                          module: "Accountant Desk"
-                                        });
-                                      } catch (err) {
-                                        console.error("Failed to delete request:", err);
-                                        alert("Failed to delete registry document.");
-                                      }
-                                    }}
-                                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl text-rose-700 text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
+                                <button
+                                  type="button"
+                                  className="bg-white hover:bg-rose-50 border border-rose-200 text-rose-700 font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95"
+                                  onClick={async () => {
+                                    const remarks = window.prompt("Reason for returning/rejecting this purchase request:") || "Returned by Accounting.";
+                                    if (!remarks) return;
+                                    try {
+                                      const timestamp = new Date().toISOString();
+                                      const docRef = doc(db, 'requests', req.id);
+                                      await updateDoc(docRef, {
+                                        status: 'DECLINED',
+                                        responseRemarks: `Declined/Withheld by Accounting: ${remarks}`,
+                                        accountingReviewedBy: userName,
+                                        accountingReviewedAt: timestamp,
+                                        handledBy: `${userName} (Accounting)`,
+                                        handledAt: timestamp,
+                                        history: [...(req.history || []), {
+                                          id: Math.random().toString(36).slice(2),
+                                          timestamp,
+                                          action: 'Accounting Declined',
+                                          details: `Purchase request declined by Accounting (${userName}). Reason: ${remarks}`
+                                        }]
+                                      });
+                                      await addDoc(collection(db, 'notifications'), {
+                                        recipientRole: 'OFFICE_HEAD',
+                                        recipientOffice: req.office,
+                                        message: `Your purchase request "${req.itemArticle || (req as any).title}" was DECLINED by Accounting. Reason: ${remarks}`,
+                                        timestamp,
+                                        isRead: false,
+                                        type: 'DECISION',
+                                        reportId: req.id
+                                      });
+                                      alert('Purchase request declined.');
+                                    } catch (err) {
+                                      console.error('Error declining PR:', err);
+                                      alert('Failed to decline purchase request.');
+                                    }
+                                  }}
+                                >
+                                  Return / Reject
+                                </button>
                               </div>
                             </div>
+
+                            {/* Inline editing form */}
+                            {editingRequisitionId === req.id && (
+                              <div className="p-4 bg-white rounded-xl border border-indigo-100 space-y-3 mt-3 animate-in">
+                                <span className="text-[9px] font-black uppercase text-indigo-600 tracking-wider block">
+                                  Edit Purchase Submission Details
+                                </span>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-[8px] font-black uppercase text-slate-400 block mb-1">Item Article</label>
+                                    <input
+                                      type="text"
+                                      className="w-full border rounded-lg p-2 text-xs font-bold"
+                                      value={String(requisitionEdit.itemArticle ?? req.itemArticle ?? (req as any).title ?? '')}
+                                      onChange={e => setRequisitionEdit({ ...requisitionEdit, itemArticle: e.target.value })}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[8px] font-black uppercase text-slate-400 block mb-1">Quantity</label>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      className="w-full border rounded-lg p-2 text-xs font-bold"
+                                      value={Number(requisitionEdit.quantity ?? req.quantity ?? 1)}
+                                      onChange={e => setRequisitionEdit({ ...requisitionEdit, quantity: Number(e.target.value) })}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[8px] font-black uppercase text-slate-400 block mb-1">Unit Cost (₱)</label>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step="0.01"
+                                      className="w-full border rounded-lg p-2 text-xs font-bold"
+                                      value={Number(requisitionEdit.unitValue ?? (req as any).unitCost ?? req.unitValue ?? 0)}
+                                      onChange={e => setRequisitionEdit({ ...requisitionEdit, unitValue: Number(e.target.value) })}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-[8px] font-black uppercase text-slate-400 block mb-1">Description / Justification</label>
+                                  <textarea
+                                    rows={2}
+                                    className="w-full border rounded-lg p-2 text-xs"
+                                    value={String(requisitionEdit.justification ?? req.justification ?? (req as any).details ?? '')}
+                                    onChange={e => setRequisitionEdit({ ...requisitionEdit, justification: e.target.value })}
+                                  />
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    type="button"
+                                    className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
+                                    onClick={() => setEditingRequisitionId(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-black uppercase tracking-wider"
+                                    onClick={async () => {
+                                      const timestamp = new Date().toISOString();
+                                      const updatedFields = {
+                                        itemArticle: requisitionEdit.itemArticle ?? req.itemArticle,
+                                        quantity: requisitionEdit.quantity ?? req.quantity,
+                                        unitValue: requisitionEdit.unitValue ?? req.unitValue,
+                                        amount: (requisitionEdit.unitValue ?? req.unitValue ?? 0) * (requisitionEdit.quantity ?? req.quantity ?? 1),
+                                        justification: requisitionEdit.justification ?? req.justification,
+                                        accountingReviewedBy: userName,
+                                        accountingReviewedAt: timestamp,
+                                      };
+                                      await updateDoc(doc(db, 'requests', req.id), updatedFields);
+                                      setEditingRequisitionId(null);
+                                      alert('Details updated successfully!');
+                                    }}
+                                  >
+                                    Save Changes
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })
                     )}
-                  </>
-                );
-              })()}
-            </div>
-            </div>
-          ) : activeTab === "unified_reports" ? (
+                  </div>
+                </section>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const registeredCount = actRequests.filter(r => r.status === 'Completed' || r.status === 'RECEIVED' || r.status === 'DISTRIBUTED').length;
+                    const pendingCount = actRequests.filter(r => r.status === 'Pending Delivery' || r.status === 'PENDING_RECEIVING').length;
+                    const actionNeededCount = actRequests.filter(r => r.status === 'PENDING' || r.status === 'Returned' || r.status === 'REJECTED' || r.status === 'Rejected').length;
+
+                    const filteredRequests = actRequests.filter(req => {
+                      if (procurementStatusFilter === 'REGISTERED') {
+                        return req.status === 'Completed' || req.status === 'RECEIVED' || req.status === 'DISTRIBUTED';
+                      }
+                      if (procurementStatusFilter === 'PENDING') {
+                        return req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING';
+                      }
+                      if (procurementStatusFilter === 'ACTION_NEEDED') {
+                        return req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected';
+                      }
+                      return true;
+                    });
+
+                    return (
+                      <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            Outgoing Request Logs ({filteredRequests.length} of {actRequests.length})
+                          </div>
+                          <span className="text-[9px] text-indigo-600 bg-indigo-50 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            Interactive Tracker
+                          </span>
+                        </div>
+
+                        {/* Quick visual tracker metrics - filterable */}
+                        <div className="grid grid-cols-4 gap-2 bg-slate-50 p-2 rounded-[20px] border border-slate-100/80">
+                          <button
+                            type="button"
+                            onClick={() => setProcurementStatusFilter('ALL')}
+                            className={`p-2 rounded-xl text-center cursor-pointer transition-all ${procurementStatusFilter === 'ALL'
+                              ? 'bg-white shadow-sm border border-slate-200 text-slate-800 font-extrabold'
+                              : 'hover:bg-white/40 text-slate-500 font-semibold'
+                              }`}
+                          >
+                            <div className="text-[13px] font-black">{actRequests.length}</div>
+                            <div className="text-[7.5px] uppercase tracking-wider block sm:inline-block">All</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProcurementStatusFilter('REGISTERED')}
+                            className={`p-2 rounded-xl text-center cursor-pointer transition-all ${procurementStatusFilter === 'REGISTERED'
+                              ? 'bg-emerald-600 text-white shadow-sm font-extrabold'
+                              : 'hover:bg-white/40 text-emerald-600 font-bold bg-emerald-50/50'
+                              }`}
+                          >
+                            <div className="text-[13px] font-black">{registeredCount}</div>
+                            <div className="text-[7.5px] uppercase tracking-wider">Registered</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProcurementStatusFilter('PENDING')}
+                            className={`p-2 rounded-xl text-center cursor-pointer transition-all ${procurementStatusFilter === 'PENDING'
+                              ? 'bg-amber-500 text-white shadow-sm font-extrabold'
+                              : 'hover:bg-white/40 text-amber-700 font-bold bg-amber-50/50'
+                              }`}
+                          >
+                            <div className="text-[13px] font-black">{pendingCount}</div>
+                            <div className="text-[7.5px] uppercase tracking-wider">Pending Del.</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setProcurementStatusFilter('ACTION_NEEDED')}
+                            className={`p-2 rounded-xl text-center cursor-pointer transition-all ${procurementStatusFilter === 'ACTION_NEEDED'
+                              ? 'bg-indigo-600 text-white shadow-sm font-extrabold'
+                              : 'hover:bg-white/40 text-slate-600 font-bold bg-slate-100'
+                              }`}
+                          >
+                            <div className="text-[13px] font-black">{actionNeededCount}</div>
+                            <div className="text-[7.5px] uppercase tracking-wider">Drafts/Returns</div>
+                          </button>
+                        </div>
+
+                        {loadingActReqs ? (
+                          <div className="bg-white p-12 rounded-[28px] border border-slate-100 flex flex-col items-center justify-center">
+                            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="mt-3 text-[9px] font-black uppercase tracking-widest text-gray-400 animate-pulse">Loading active logs...</p>
+                          </div>
+                        ) : filteredRequests.length === 0 ? (
+                          <div className="bg-white p-12 text-center border border-dashed border-slate-200 rounded-[28px]">
+                            <p className="text-gray-400 text-xs font-black uppercase tracking-widest">No matching logs found</p>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">There are no requests matching the selected category.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {filteredRequests.map(req => (
+                              <div
+                                key={req.id}
+                                className={`bg-white p-6 rounded-[28px] border transition-all ${req.status === 'PENDING' ? 'border-amber-100' :
+                                  req.status === 'APPROVED' ? 'border-emerald-100' :
+                                    'border-red-100'
+                                  }`}
+                              >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${req.status === 'PENDING' ? 'bg-slate-50 text-slate-600 border-slate-300' :
+                                      (req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING') ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                        req.status === 'Returned' ? 'bg-amber-50 text-amber-800 border-amber-350 animate-pulse' :
+                                          (req.status === 'Completed' || req.status === 'RECEIVED') ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-extrabold' :
+                                            req.status === 'DISTRIBUTED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                                              (req.status === 'REJECTED' || req.status === 'Rejected') ? 'bg-rose-50 text-rose-700 border-rose-250 font-extrabold' :
+                                                'bg-red-50 text-red-700 border-red-200'
+                                      }`}>
+                                      {req.status === 'PENDING' ? 'PREPARED - DRAFT' :
+                                        (req.status === 'Pending Delivery' || req.status === 'PENDING_RECEIVING') ? 'SENT - PENDING DELIVERY' :
+                                          req.status === 'Returned' ? 'RETURNED FOR CORRECTION' :
+                                            req.status === 'Completed' ? 'COMPLETED (CARGO RECEIVED)' :
+                                              req.status === 'RECEIVED' ? 'IN ENGINEER CARGO' :
+                                                req.status === 'DISTRIBUTED' ? 'FULLY DISTRIBUTED' :
+                                                  req.status === 'REJECTED' || req.status === 'Rejected' ? 'REJECTED & RETURNED' :
+                                                    req.status}
+                                    </span>
+
+                                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${req.priority === 'High' ? 'bg-rose-50 text-rose-700 border-rose-250 font-black' :
+                                      req.priority === 'Medium' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                                        'bg-slate-50 text-slate-500 border-slate-200'
+                                      }`}>
+                                      {req.priority} Priority
+                                    </span>
+
+                                    {req.amount !== undefined && (
+                                      <span className="bg-slate-50 text-indigo-700 border border-slate-100 px-2 rounded-full text-[8.5px] font-black">
+                                        ₱{req.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <span className="text-[8.5px] text-slate-400 font-bold uppercase">
+                                    {new Date(req.submittedAt).toLocaleDateString()} at {new Date(req.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-3 mt-2">
+                                  <div className="flex items-start justify-between">
+                                    <div>
+                                      <span className="text-[8px] font-black text-slate-400 block uppercase tracking-widest">
+                                        {req.slipNumber ? `PRS Slip ${req.slipNumber}` : 'Requested Item'} ({req.equipmentType || 'Equipment'})
+                                      </span>
+                                      <h4 className="text-sm font-black text-slate-900 uppercase mt-0.5">{req.title}</h4>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <span className="text-[8px] font-black text-slate-400 block uppercase tracking-widest">Quantity</span>
+                                      <span className="text-xs font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg block mt-0.5">
+                                        {req.quantity} {req.unit || 'pcs'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-[10.5px]">
+                                    <div>
+                                      <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block">Accountant Provided Budget</span>
+                                      <span className="font-brand font-black text-indigo-700 mt-0.5 block">
+                                        ₱{req.amount !== undefined && req.amount !== null ? Number(req.amount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : "None"}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block">Requesting Person Name</span>
+                                      <span className="font-extrabold text-slate-800 uppercase mt-0.5 block">
+                                        {req.requestedBy || req.submittedBy || 'N/A'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {req.details && (
+                                    <div>
+                                      <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block mb-0.5">Purpose / Specifications</span>
+                                      <p className="text-slate-600 text-[11px] whitespace-pre-line leading-relaxed italic pr-2">
+                                        "{req.details}"
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Receiving Timeline tracker */}
+
+
+                                  {/* Cargo details displayed automatically */}
+                                  {(req.status === 'PENDING_RECEIVING' || req.status === 'Pending Delivery') && (
+                                    <div className="mt-2 p-3 bg-amber-50/50 rounded-2xl border border-amber-100 text-[10.5px] text-amber-800 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>⏳ SENT - PENDING DELIVERY</span>
+                                      </div>
+                                      <div>Sent Date: {req.sentToEngineerAt ? new Date(req.sentToEngineerAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Status: Pending physical cargo receiving & delivery verification.</div>
+                                    </div>
+                                  )}
+
+                                  {req.status === 'RECEIVED' && (
+                                    <div className="mt-2 p-3 bg-blue-50/50 rounded-2xl border border-blue-100 text-[10.5px] text-blue-900 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>✓ RECEIVED IN CARGO BY ENGINEER</span>
+                                      </div>
+                                      <div>Received Date: {req.receivedAt ? new Date(req.receivedAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Verified By: {req.receivedBy || 'Municipal Engineer'}</div>
+                                      <div>Allocation Remaining: {req.quantity - (req.distributedQty || 0)} out of {req.quantity} units</div>
+                                    </div>
+                                  )}
+
+                                  {req.status === 'DISTRIBUTED' && (
+                                    <div className="mt-2 p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100 text-[10.5px] text-emerald-800 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>✓ FULLY DISTRIBUTED & COMMITTED</span>
+                                      </div>
+                                      <div>Received & Processed by: {req.receivedBy || 'Municipal Engineer'}</div>
+                                      <div>Status: Fully allocated to requested department(s).</div>
+                                    </div>
+                                  )}
+
+                                  {req.distributions && req.distributions.length > 0 && (
+                                    <div className="mt-2 p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] space-y-1.5">
+                                      <span className="text-[7.5px] font-black uppercase text-slate-400 tracking-widest block border-b border-slate-150 pb-1">
+                                        Physical Allocations Log ({req.distributedQty || 0} unit(s) distributed)
+                                      </span>
+                                      <div className="space-y-1 text-[9.5px]">
+                                        {req.distributions.map((dist: any, idx: number) => (
+                                          <div key={idx} className="flex justify-between items-center font-bold text-slate-600">
+                                            <span>→ Distributed {dist.quantity} unit(s) to <strong className="text-slate-800">{dist.office}</strong></span>
+                                            <span className="text-gray-400 font-mono text-[8.5px]">{new Date(dist.date).toLocaleDateString()}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Approval details displayed automatically */}
+                                  {req.status === 'APPROVED' && (
+                                    <div className="mt-2 p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-[10.5px] text-emerald-800 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>✓ APPROVED BY ENGINEER</span>
+                                      </div>
+                                      <div>Approved Date: {req.approvedAt ? new Date(req.approvedAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Approved By: {req.approvedBy || 'Municipal Engineer'}</div>
+                                    </div>
+                                  )}
+
+                                  {/* Returned details displayed automatically */}
+                                  {req.status === 'Returned' && (
+                                    <div className="mt-2 p-3 bg-amber-50 rounded-2xl border border-amber-250 text-[10.5px] text-amber-900 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-amber-700 uppercase tracking-widest flex items-center gap-1">
+                                        <span>⚠ RETURNED FOR CORRECTION</span>
+                                      </div>
+                                      <div>Returned Date: {req.rejectedAt ? new Date(req.rejectedAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Returned By: {req.rejectedBy || 'Municipal Engineer'}</div>
+                                      {req.rejectionReason && (
+                                        <div className="text-amber-950 italic mt-1 font-extrabold">"Remarks: {req.rejectionReason}"</div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Completed details displayed automatically */}
+                                  {req.status === 'Completed' && (
+                                    <div className="mt-2 p-3 bg-emerald-50 rounded-2xl border border-emerald-150 text-[10.5px] text-emerald-800 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>✓ CARGO DELIVERED & RECEIVED SUCCESSFULLY</span>
+                                      </div>
+                                      <div>Received Date: {req.receivedAt ? new Date(req.receivedAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Received By: {req.receivedBy || 'Municipal Engineer'}</div>
+                                      <div>Status: Officially received and deposited in Warehouse and {req.targetOffice}.</div>
+                                    </div>
+                                  )}
+
+                                  {/* Rejection details displayed automatically */}
+                                  {(req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                    <div className="mt-2 p-3 bg-rose-50 rounded-2xl border border-rose-100 text-[10.5px] text-rose-800 font-bold space-y-1">
+                                      <div className="text-[8px] font-black text-rose-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span>✗ REJECTED BY ENGINEER</span>
+                                      </div>
+                                      <div>Rejected Date: {req.rejectedAt ? new Date(req.rejectedAt).toLocaleDateString() : 'N/A'}</div>
+                                      <div>Rejected By: {req.rejectedBy || 'Municipal Engineer'}</div>
+                                      {req.rejectionReason && (
+                                        <div className="text-rose-950 italic mt-1 font-extrabold">"Reason: {req.rejectionReason}"</div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Response remarks display */}
+                                {req.adminRemarks && (
+                                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[10px] text-slate-700 font-bold mt-3">
+                                    <span className="text-[8px] font-black uppercase text-slate-400 block mb-0.5">Admin Response remarks:</span>
+                                    <p className="italic">"{req.adminRemarks}"</p>
+                                  </div>
+                                )}
+
+                                {/* Action buttons bar */}
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 mt-4">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <button
+                                      onClick={() => openIndividualReceiptModal(req)}
+                                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                                      <span>Generate &amp; Submit {(req.unitCost !== undefined && req.unitCost !== null && req.unitCost !== '' ? Number(req.unitCost) : ((Number(req.amount) || 0) / (Number(req.quantity) || 1))) >= 50000 ? 'PAR (≥₱50k)' : 'ICS (<₱50k)'} Receipt</span>
+                                    </button>
+
+                                    {req.parIcsStatus === 'Submitted' && (
+                                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-[8px] font-black uppercase tracking-wider flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        <span>{req.parIcsType || 'PAR/ICS'} Submitted ({req.parIcsNumber})</span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                      <button
+                                        onClick={() => handleSendToEngineer(req)}
+                                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        Send to Engineer
+                                      </button>
+                                    )}
+                                    {(req.status === 'PENDING' || req.status === 'Pending Delivery' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingActReq(req);
+                                          setNewTitle(req.itemArticle || req.title || '');
+                                          setNewDetails(req.details || req.justification || '');
+                                          setNewAmount(req.amount !== undefined && req.amount !== null ? req.amount : '');
+                                          setNewQuantity(req.quantity || 1);
+                                          setNewRequestedPerson(req.requestedBy || req.submittedBy || userName || '');
+                                          setNewPriority(req.priority || 'Medium');
+                                          setNewTargetOffice(req.targetOffice || "Municipal Engineering");
+                                          setNewTargetOfficeHead(req.targetOfficeHead || req.officeHead || '');
+                                          setNewPreparedBy(req.preparedBy || req.userName || userName || '');
+                                          setNewSlipNumber(req.slipNumber || '');
+                                          setNewSupplier(req.supplier || '');
+                                          setNewPONumber(req.poNumber || '');
+                                          setNewInvoiceNumber(req.invoiceNumber || '');
+                                          setNewUnitCost(req.unitCost !== undefined && req.unitCost !== null ? req.unitCost : '');
+                                          setNewExpectedDeliveryDate(req.expectedDeliveryDate || '');
+                                          setNewDatePurchased(req.datePurchased || '');
+                                          setNewFundingSource(req.fundingSource || 'General Fund');
+                                        }}
+                                        className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        Modify / Edit
+                                      </button>
+                                    )}
+                                    {(req.status === 'PENDING' || req.status === 'Returned' || req.status === 'REJECTED' || req.status === 'Rejected') && (
+                                      <button
+                                        onClick={async () => {
+                                          if (!confirm("Are you sure you want to delete this procurement request?")) return;
+                                          try {
+                                            await deleteDoc(doc(db, "requests", req.id));
+
+                                            await addDoc(collection(db, "system_logs"), {
+                                              timestamp: new Date().toISOString(),
+                                              user: userName,
+                                              action: `Accountant deleted Procurement Request: "${req.itemArticle || req.title}"`,
+                                              module: "Accountant Desk"
+                                            });
+                                          } catch (err) {
+                                            console.error("Failed to delete request:", err);
+                                            alert("Failed to delete registry document.");
+                                          }
+                                        }}
+                                        className="px-3.5 py-2 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-xl text-rose-700 text-[8.5px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            ) : activeTab === "unified_reports" ? (
               <Reports
                 items={items}
                 onAddItem={onAddItem}
@@ -5189,6 +5588,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                 userOffice="Accounting Office"
                 userName={userName}
                 initialTab={reportsInitialTab}
+                seedDraftReport={seedDraftReport}
+                onSeedDraftConsumed={() => setSeedDraftReport(null)}
               />
             ) : activeTab === "procurement_history" ? (
               <ProcurementTransactionHistory />
@@ -5196,8 +5597,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
 
             {/* Read-Only Stock Card Transaction Ledger Modal */}
             {isStockCardDetailOpen && selectedStockCardItem && (() => {
-              const itemTxns = transactions.filter(t => 
-                t.itemId === selectedStockCardItem.id || 
+              const itemTxns = transactions.filter(t =>
+                t.itemId === selectedStockCardItem.id ||
                 (t.article === selectedStockCardItem.article && t.officeId === selectedStockCardItem.office)
               );
 
@@ -5253,7 +5654,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           Audit Ledger (Transactions: {itemTxns.length})
                         </h4>
-                        
+
                         <div className="flex items-center gap-2">
                           {/* Export modal transaction list button */}
                           <button
@@ -5641,7 +6042,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                       <CheckCircle2 className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                       <div className="text-xs text-slate-700 font-medium">
                         <strong className="font-extrabold uppercase text-slate-900 block text-[11px] mb-0.5">Automated Receipt Classification</strong>
-                        This purchase request for <strong className="text-indigo-700">{pr.itemArticle || pr.title}</strong> has been classified as <strong className="text-slate-900">{isPAR ? 'PAR (Property Acknowledgement Receipt)' : 'ICS (Inventory Custodian Slip)'}</strong> based on unit valuation (₱{unitCost.toLocaleString(undefined, {minimumFractionDigits: 2})}). Review metadata and click submit to send to Engineer &amp; Admin.
+                        This purchase request for <strong className="text-indigo-700">{pr.itemArticle || pr.title}</strong> has been classified as <strong className="text-slate-900">{isPAR ? 'PAR (Property Acknowledgement Receipt)' : 'ICS (Inventory Custodian Slip)'}</strong> based on unit valuation (₱{unitCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}). Review metadata and click submit to send to Engineer &amp; Admin.
                       </div>
                     </div>
 
@@ -5727,7 +6128,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                     {/* Official GAM Receipt Print Preview Box */}
                     <div className="bg-white border-2 border-slate-900 rounded-2xl p-6 font-serif shadow-sm space-y-4">
                       <div className="text-right italic font-bold text-[9pt] text-slate-400">{annexLabel}</div>
-                      
+
                       <div className="text-center font-bold text-[8.5pt] uppercase text-slate-500 tracking-wider">
                         REPUBLIC OF THE PHILIPPINES • PROVINCE OF ANTIQUE • MUNICIPALITY OF TIBIAO
                       </div>
@@ -5771,8 +6172,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                           <tr>
                             <td className="border border-slate-900 p-2 text-center font-bold">{pr.quantity || 1}</td>
                             <td className="border border-slate-900 p-2 text-center uppercase">{pr.unit || 'pcs'}</td>
-                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono">₱{unitCost.toLocaleString(undefined, {minimumFractionDigits:2})}</td>}
-                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono font-bold">₱{totalVal.toLocaleString(undefined, {minimumFractionDigits:2})}</td>}
+                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono">₱{unitCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>}
+                            {!isPAR && <td className="border border-slate-900 p-2 text-right font-mono font-bold">₱{totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>}
                             <td className="border border-slate-900 p-2">
                               <strong className="uppercase text-slate-900 block">{pr.itemArticle || pr.title}</strong>
                               <span className="text-[8pt] text-slate-600 block">{pr.details || pr.justification || "Procurement Item"}</span>
@@ -5781,7 +6182,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                             </td>
                             <td className="border border-slate-900 p-2 text-center font-mono">{pr.slipNumber ? `PROP-${pr.slipNumber}` : 'Pending'}</td>
                             <td className="border border-slate-900 p-2 text-right font-mono font-bold">
-                              {isPAR ? `₱${totalVal.toLocaleString(undefined, {minimumFractionDigits:2})}` : `${pr.usefulLife || 5} yrs`}
+                              {isPAR ? `₱${totalVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `${pr.usefulLife || 5} yrs`}
                             </td>
                           </tr>
                         </tbody>

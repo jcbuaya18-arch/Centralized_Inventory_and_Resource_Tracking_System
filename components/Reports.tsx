@@ -5,7 +5,7 @@ import { InventoryTransferReport } from './InventoryTransferReport';
 import { GAMFormsEditor } from './GAMForms';
 import { db } from '../firebase';
 import { OFFICIAL_LGU_INVENTORY } from '../officialLguData';
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, where } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, getDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
 
 interface ReportsProps {
   items: InventoryItem[];
@@ -17,6 +17,8 @@ interface ReportsProps {
   userOffice?: string;
   userName?: string;
   initialTab?: 'generator' | 'archive' | 'transfers';
+  seedDraftReport?: GeneratedReport | null;
+  onSeedDraftConsumed?: () => void;
 }
 
 interface VisibleFields {
@@ -117,7 +119,9 @@ const Reports: React.FC<ReportsProps> = ({
   userRole,
   userOffice,
   userName,
-  initialTab
+  initialTab,
+  seedDraftReport,
+  onSeedDraftConsumed
 }) => {
   const currentRole = userRole || 'ADMIN';
   const currentOffice = userOffice || '';
@@ -214,6 +218,7 @@ const Reports: React.FC<ReportsProps> = ({
   const [rrspReceivedBy, setRrspReceivedBy] = useState<string>('JUAN DELA CRUZ');
   const [rrspApprovedBy, setRrspApprovedBy] = useState<string>('PEDRO L. SANTOS');
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [sourceRequisitionId, setSourceRequisitionId] = useState<string | undefined>(undefined);
   const [savedReports, setSavedReports] = useState<GeneratedReport[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -474,6 +479,37 @@ const Reports: React.FC<ReportsProps> = ({
         history: history
       };
 
+      const originalRequisitionId = existingReport?.originalRequisitionId || manualPayload?.originalRequisitionId || sourceRequisitionId;
+      if (originalRequisitionId) {
+        if (!isFormAuthorized(reportMode, currentRole, false)) {
+          alert('You are not authorized to forward this report.');
+          return;
+        }
+        if (!reportId) throw new Error('The PAR/ICS draft must be saved before it can be forwarded.');
+        const batch = writeBatch(db);
+        const reportRef = doc(db, 'reports', reportId);
+        const reqRef = doc(db, 'requests', originalRequisitionId);
+        const sourceReq = await getDoc(reqRef);
+        if (!sourceReq.exists()) throw new Error('The linked Office Head requisition no longer exists.');
+        const reqData = sourceReq.data();
+        batch.update(reportRef, { ...(manualPayload || {}), originalRequisitionId, ...updates });
+        batch.update(reqRef, {
+          linkedParIcsReportId: reportId,
+          status: 'Pending Engineer/Admin Review',
+          accountingReviewedBy: currentUserName,
+          accountingReviewedAt: timestamp,
+          history: [...(reqData.history || []), { id: Math.random().toString(36).slice(2), timestamp, action: 'Accounting Forwarded Paired Documents', details: `Accounting forwarded linked ${manualPayload?.report_type || existingReport?.report_type || reportType} and requisition to Engineer/Admin.` }]
+        });
+        await batch.commit();
+        await addDoc(collection(db, 'notifications'), { recipientRole: 'ADMIN', message: `DUAL APPROVAL READY: Requisition and ${manualPayload?.report_type || existingReport?.report_type || reportType} report have been forwarded together.`, timestamp, isRead: false, type: 'SUBMISSION', reportId });
+        await addDoc(collection(db, 'system_logs'), { timestamp, user: currentUserName, action: `Forwarded linked requisition ${originalRequisitionId} with PAR/ICS report ${reportId}`, module: 'Reporting' });
+        onReportSave?.();
+        alert('PAR/ICS report and requisition forwarded together for Engineer/Admin review.');
+        setActiveTab('archive');
+        setEditingReportId(null);
+        return;
+      }
+
       let finalReportId = reportId;
 
       if (reportId) {
@@ -544,12 +580,39 @@ const Reports: React.FC<ReportsProps> = ({
         } else {
           await addDoc(collection(db, 'requests'), requestPayload);
         }
+
+        // If this report is linked to an original Office Head Requisition, update that requisition atomically
+        const targetReqId = manualPayload?.originalRequisitionId;
+        if (targetReqId) {
+          const origReqRef = doc(db, 'requests', targetReqId);
+          const origReqSnap = await getDoc(origReqRef);
+          if (origReqSnap.exists()) {
+            const oldHistory = origReqSnap.data().history || [];
+            await updateDoc(origReqRef, {
+              linkedParIcsReportId: finalReportId,
+              status: 'Pending Engineer/Admin Review',
+              accountingReviewedBy: currentUserName,
+              accountingReviewedAt: timestamp,
+              history: [
+                ...oldHistory,
+                {
+                  id: Math.random().toString(36).substr(2, 9),
+                  timestamp,
+                  action: 'AccountingCompiledPAR',
+                  details: `Accounting (${currentUserName}) compiled and forwarded PAR/ICS draft (${rNumber}) to Engineer/Admin for dual-approval.`
+                }
+              ]
+            });
+          }
+        }
       }
 
       // Add a real-time notification in the database for Engineer/Admin
       await addDoc(collection(db, 'notifications'), {
         recipientRole: 'ADMIN',
-        message: `New Official Report "${manualPayload?.report_type || reportType}" has been submitted by ${currentUserName} (${currentOffice || 'Office Dept'}) and is awaiting review.`,
+        message: manualPayload?.originalRequisitionId
+          ? `DUAL APPROVAL READY: Office Head Requisition compiled into ${manualPayload?.report_type || reportType} by ${currentUserName} (${currentOffice || 'Accounting'}) and forwarded for Engineer/Admin review.`
+          : `New Official Report "${manualPayload?.report_type || reportType}" has been submitted by ${currentUserName} (${currentOffice || 'Office Dept'}) and is awaiting review.`,
         timestamp: timestamp,
         isRead: false,
         type: 'SUBMISSION',
@@ -1542,6 +1605,7 @@ const Reports: React.FC<ReportsProps> = ({
       item_count: reportRows.length,
       items_snapshot: reportRows,
       status: status,
+      originalRequisitionId: sourceRequisitionId || existingReport?.originalRequisitionId,
       history: history,
       audit_notes: auditNotes,
       
@@ -1728,6 +1792,7 @@ const Reports: React.FC<ReportsProps> = ({
 
   const loadFromArchive = (report: GeneratedReport, isDuplicate: boolean = false) => {
     setEditingReportId(isDuplicate ? null : report.id);
+    setSourceRequisitionId(isDuplicate ? undefined : report.originalRequisitionId);
     setReportType(report.report_type);
     setFundCluster(report.fund_cluster);
     setReportDate(report.report_date);
@@ -1786,6 +1851,15 @@ const Reports: React.FC<ReportsProps> = ({
     }
     setActiveTab('generator');
   };
+
+  useEffect(() => {
+    if (seedDraftReport) {
+      loadFromArchive(seedDraftReport);
+      setReportMode(seedDraftReport.reportMode || 'ics');
+      setIsViewOnly(false);
+      onSeedDraftConsumed?.();
+    }
+  }, [seedDraftReport]);
 
   const deleteReport = async (id: string) => {
     if (!confirm('Are you sure you want to delete this archived report?')) return;
@@ -3360,7 +3434,7 @@ const Reports: React.FC<ReportsProps> = ({
               </div>
 
               <button 
-                onClick={populateFromInventory}
+                onClick={() => populateFromInventory()}
                 title="Sync with Inventory"
                 className="p-3 bg-white border border-gray-100 rounded-2xl text-blue-600 hover:bg-blue-50 transition-all shadow-sm active:scale-90"
               >

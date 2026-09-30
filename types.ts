@@ -149,6 +149,8 @@ export interface GeneratedReport {
   status: 'Draft' | 'Pending Approval' | 'Approved' | 'Rejected' | 'Returned for Revision' | 'Finalized';
   created_at?: string;
   reviewedBy?: string;
+  originalRequisitionId?: string;
+  isSuperseded?: boolean;
   
   parNo?: string;
   prsNumber?: string;
@@ -293,10 +295,16 @@ export interface AssetRequest {
   office: string;
   requestedBy: string;
   requestedAt: string;
-  status: 'PENDING' | 'FORWARDED' | 'APPROVED' | 'DECLINED' | 'DISPATCHED' | 'REJECTED' | 'RETURNED_FOR_REVISION' | 'Draft' | 'Pending Submission' | 'Submitted' | 'Pending Engineer/Admin Review' | 'Returned for Correction' | 'Resubmitted' | 'Completed' | 'Archived' | 'DRAFT' | 'PENDING_SUBMISSION' | 'SUBMITTED' | 'PENDING_REVIEW' | 'RETURNED_FOR_CORRECTION' | 'RESUBMITTED' | 'COMPLETED' | 'ARCHIVED';
+  status: 'PENDING' | 'FORWARDED' | 'APPROVED' | 'DECLINED' | 'DISPATCHED' | 'REJECTED' | 'RETURNED_FOR_REVISION' | 'Returned for Revision' | 'Draft' | 'Pending Submission' | 'Submitted' | 'Pending Accounting Review' | 'Accounting Reviewed' | 'Pending Engineer/Admin Review' | 'Pending Delivery' | 'Returned for Correction' | 'Resubmitted' | 'Completed' | 'Archived' | 'DRAFT' | 'PENDING_SUBMISSION' | 'SUBMITTED' | 'PENDING_REVIEW' | 'RETURNED_FOR_CORRECTION' | 'RESUBMITTED' | 'COMPLETED' | 'ARCHIVED' | 'RECEIVED' | 'DISTRIBUTED';
   responseRemarks?: string;
   handledBy?: string;
   handledAt?: string;
+
+  // Dual Approval & PAR/ICS Workflow Linking Fields
+  originalRequisitionId?: string;
+  linkedParIcsReportId?: string;
+  accountingReviewedBy?: string;
+  accountingReviewedAt?: string;
 
   // Unified Request Fields
   requestType?: 'REQUISITION' | 'FINANCIAL' | 'PAR' | 'ICS';

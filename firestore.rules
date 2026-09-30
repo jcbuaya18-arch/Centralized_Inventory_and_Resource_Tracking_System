@@ -55,6 +55,13 @@ service cloud.firestore {
              );
     }
 
+    function isAccounting() {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             ('role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ACCOUNTING";
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -104,7 +111,11 @@ service cloud.firestore {
     }
 
     match /requests/{requestId} {
-      allow get, list, create, update, delete: if isAuthorized();
+      allow get, list, create, delete: if isAuthorized();
+      allow update: if isAuthorized() || (
+        isAccounting() &&
+        resource.data.status == 'Pending Accounting Review'
+      );
     }
 
     match /accountant_requests/{requestId} {

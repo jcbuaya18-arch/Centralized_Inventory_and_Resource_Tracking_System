@@ -128,7 +128,7 @@ export interface ProcurementTransactionPayload {
   itemArticle: string;
   quantity: number;
   amount?: number | null;
-  status: 'Sent' | 'Pending' | 'Received' | 'Distributed' | 'Approved' | 'Declined' | 'Submitted';
+  status: 'Sent' | 'Pending' | 'Received' | 'Distributed' | 'Approved' | 'Declined' | 'Submitted' | 'Pending Accounting Review' | 'Pending Engineer/Admin Review';
   user: string;
   office: string;
   details: string;

@@ -3,15 +3,16 @@ import { AssetRequest, Office, UserRole } from '../types';
 import { db, auth, logProcurementTransaction } from '../firebase';
 import { logPRSAction } from './auditUtils';
 import { ReceivingTimeline } from './ReceivingTimeline';
-import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  addDoc,
+  updateDoc,
+  deleteDoc,
   doc,
+  getDoc,
   getDocs,
   where,
   runTransaction,
@@ -38,16 +39,16 @@ const approveAndLinkStockRecord = async (
     const itemsToProcess = (req.items_snapshot && req.items_snapshot.length > 0)
       ? req.items_snapshot
       : [{
-          article: req.itemArticle || 'Unnamed Item',
-          description: req.justification || 'No description provided.',
-          propertyNumber: req.requestNumber || `PROP-${req.requestType || 'REQ'}-${Date.now()}`,
-          unitOfMeasure: 'unit',
-          unitValue: req.amount || 0,
-          qtyPhysicalCount: Number(req.quantity) || 1,
-          qtyPropertyCard: Number(req.quantity) || 1,
-          category: req.category || 'Other Assets',
-          office: req.office || 'Municipal Hall'
-        }];
+        article: req.itemArticle || 'Unnamed Item',
+        description: req.justification || 'No description provided.',
+        propertyNumber: req.requestNumber || `PROP-${req.requestType || 'REQ'}-${Date.now()}`,
+        unitOfMeasure: 'unit',
+        unitValue: req.amount || 0,
+        qtyPhysicalCount: Number(req.quantity) || 1,
+        qtyPropertyCard: Number(req.quantity) || 1,
+        category: req.category || 'Other Assets',
+        office: req.office || 'Municipal Hall'
+      }];
 
     // Read matching documents before transaction (since queries are forbidden in transactions)
     const itemsCol = collection(db, 'inventory_items');
@@ -61,15 +62,15 @@ const approveAndLinkStockRecord = async (
     const existingReports = reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
 
     const expectedFormType = (req.requestType || 'PAR').toLowerCase();
-    const matchedReport = existingReports.find(r => 
-      r.id === req.reportId || 
+    const matchedReport = existingReports.find(r =>
+      r.id === req.reportId ||
       (r.reportMode === expectedFormType && (r.prsNumber === req.requestNumber || r.id === req.id))
     );
 
     const associatedFormType = req.requestType || 'PAR';
     const associatedFormId = matchedReport ? matchedReport.id : (req.reportId || '');
-    const associatedFormNo = matchedReport 
-      ? (matchedReport.parNo || matchedReport.icsNo || matchedReport.id) 
+    const associatedFormNo = matchedReport
+      ? (matchedReport.parNo || matchedReport.icsNo || matchedReport.id)
       : `${associatedFormType}-${req.requestNumber || 'AUTO'}`;
 
     let lastMatchedId = '';
@@ -248,13 +249,13 @@ const approveAndLinkStockRecord = async (
 
         // Create/Update Stock Card inside transaction without additional reads
         const recordStockCardAndTransaction = (
-          itemId: string, 
-          officeName: string, 
-          oldQty: number, 
+          itemId: string,
+          officeName: string,
+          oldQty: number,
           newQty: number
         ) => {
           const stockCardRef = doc(db, 'stock_cards', itemId);
-          
+
           transaction.set(stockCardRef, {
             itemId,
             article: articleUpper,
@@ -596,36 +597,36 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
     })) as any[];
 
     // Find Warehouse matching item (matches article in uppercase and office === "Warehouse")
-    const matchingWarehouseItem = existingItems.find(item => 
-      item.office === "Warehouse" && 
-      item.article && 
+    const matchingWarehouseItem = existingItems.find(item =>
+      item.office === "Warehouse" &&
+      item.article &&
       item.article.toUpperCase().trim() === itemTitle.toUpperCase().trim()
     );
 
     // Find Designated Office matching item (matches article in uppercase and office === pr.targetOffice)
     const targetOfficeName = pr.targetOffice || pr.office || "Municipal Engineering";
-    const matchingOfficeItem = existingItems.find(item => 
-      item.office === targetOfficeName && 
-      item.article && 
+    const matchingOfficeItem = existingItems.find(item =>
+      item.office === targetOfficeName &&
+      item.article &&
       item.article.toUpperCase().trim() === itemTitle.toUpperCase().trim()
     );
 
     // Find if we have an existing PAR/ICS report
     const reportsSnapshot = await getDocs(collection(db, 'reports'));
     const existingReports = reportsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-    
+
     const isAsset = unitCost >= 50000;
     const expectedFormType = isAsset ? 'par' : 'ics';
-    
-    const matchedReport = existingReports.find(r => 
-      (r.reportMode === expectedFormType) && 
+
+    const matchedReport = existingReports.find(r =>
+      (r.reportMode === expectedFormType) &&
       (r.prsNumber === pr.slipNumber || r.id === pr.reportId || r.slipNumber === pr.slipNumber)
     );
 
     const associatedFormType = isAsset ? 'PAR' : 'ICS';
     const associatedFormId = matchedReport ? matchedReport.id : '';
-    const associatedFormNo = matchedReport 
-      ? (matchedReport.parNo || matchedReport.icsNo || matchedReport.id) 
+    const associatedFormNo = matchedReport
+      ? (matchedReport.parNo || matchedReport.icsNo || matchedReport.id)
       : `${associatedFormType}-${pr.slipNumber || 'AUTO'}`;
 
     await runTransaction(db, async (transaction) => {
@@ -643,7 +644,7 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
       if (!prDocSnap.exists()) {
         throw new Error("Procurement Request Slip (PRS) does not exist.");
       }
-      
+
       const prData = prDocSnap.data();
       if (prData.status === 'Completed' || prData.status === 'RECEIVED') {
         throw new Error("This PRS has already been completed or received.");
@@ -662,9 +663,9 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
       const rpcppe = mapCategoryToRpcppeFields(pr.category || "Equipment", itemTitle);
 
       const processInventoryItemUpdate = (
-        matchingItem: any, 
+        matchingItem: any,
         itemSnap: any,
-        officeName: string, 
+        officeName: string,
         personAccountableName: string
       ) => {
         let itemDocRef;
@@ -687,15 +688,15 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
             id: Math.random().toString(36).substr(2, 9),
             timestamp,
             user: authorName,
-            action: matchingItem 
-              ? `Cargo Auto-Updated: Received ${qty} unit(s) via PRS ${pr.slipNumber || pr.id.substring(0,8)}. Total: ${newQty}` 
-              : `Initial registration of physical cargo via PRS ${pr.slipNumber || pr.id.substring(0,8)}.`
+            action: matchingItem
+              ? `Cargo Auto-Updated: Received ${qty} unit(s) via PRS ${pr.slipNumber || pr.id.substring(0, 8)}. Total: ${newQty}`
+              : `Initial registration of physical cargo via PRS ${pr.slipNumber || pr.id.substring(0, 8)}.`
           }
         ];
 
         const itemPayload = {
           article: itemTitle.toUpperCase(),
-          description: pr.justification || pr.details || pr.description || `Received via PRS ${pr.slipNumber || pr.id.substring(0,8)}`,
+          description: pr.justification || pr.details || pr.description || `Received via PRS ${pr.slipNumber || pr.id.substring(0, 8)}`,
           propertyNumber: matchingItem?.propertyNumber || rpcppe.propertyNumber,
           assetCode: matchingItem?.assetCode || rpcppe.assetCode,
           usefulLife: matchingItem?.usefulLife || rpcppe.usefulLife,
@@ -708,7 +709,7 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
           office: officeName,
           personAccountable: personAccountableName,
           assignedStaff: personAccountableName,
-          remarks: `Delivered and verified under PRS ${pr.slipNumber || pr.id.substring(0,8)}`,
+          remarks: `Delivered and verified under PRS ${pr.slipNumber || pr.id.substring(0, 8)}`,
           yearPurchased: new Date(pr.datePurchased || timestamp).getFullYear(),
           status: "AVAILABLE",
           condition: "Good",
@@ -735,13 +736,13 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
       const officeRes = processInventoryItemUpdate(targetMatched, targetSnap, targetOffice, pr.requestedBy || authorName);
 
       const recordStockCardAndTransaction = (
-        itemId: string, 
-        officeName: string, 
-        oldQty: number, 
+        itemId: string,
+        officeName: string,
+        oldQty: number,
         newQty: number
       ) => {
         const stockCardRef = doc(db, 'stock_cards', itemId);
-        
+
         transaction.set(stockCardRef, {
           itemId,
           article: itemTitle.toUpperCase(),
@@ -759,7 +760,7 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
           quantity: qty,
           date: dateStr,
           timestamp,
-          referenceFormId: pr.slipNumber || pr.id.substring(0,8),
+          referenceFormId: pr.slipNumber || pr.id.substring(0, 8),
           supplier: pr.supplier || 'N/A',
           beginningBalance: oldQty,
           remainingBalance: newQty,
@@ -784,8 +785,8 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
           date: dateStr,
           time: timeStr,
           timestamp,
-          remarks: `Cargo received atomically via PRS ${pr.slipNumber || pr.id.substring(0,8)}`,
-          reference: pr.slipNumber || pr.id.substring(0,8)
+          remarks: `Cargo received atomically via PRS ${pr.slipNumber || pr.id.substring(0, 8)}`,
+          reference: pr.slipNumber || pr.id.substring(0, 8)
         });
       };
 
@@ -795,7 +796,7 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
       transaction.set(sysLogAccRef, {
         timestamp,
         user: 'Municipal Engineering Office',
-        action: `RECEIVED (ATOMIC): "${itemTitle}" | Qty: ${qty} | Val: ₱${amount.toLocaleString()} | Target: ${targetOfficeName} | Reference PRS: ${pr.slipNumber || pr.id.substring(0,8)}`,
+        action: `RECEIVED (ATOMIC): "${itemTitle}" | Qty: ${qty} | Val: ₱${amount.toLocaleString()} | Target: ${targetOfficeName} | Reference PRS: ${pr.slipNumber || pr.id.substring(0, 8)}`,
         module: 'Accounting History'
       });
 
@@ -803,14 +804,14 @@ const syncFinancialApprovalToEngineerModule = async (pr: any, authorName: string
       transaction.set(sysLogEngRef, {
         timestamp,
         user: authorName,
-        action: `RECEIVED (ATOMIC): Received and transferred cargo for "${itemTitle}" | Qty: ${qty} | Ref: ${pr.slipNumber || pr.id.substring(0,8)}`,
+        action: `RECEIVED (ATOMIC): Received and transferred cargo for "${itemTitle}" | Qty: ${qty} | Ref: ${pr.slipNumber || pr.id.substring(0, 8)}`,
         module: 'Engineer Transaction Log'
       });
 
       const notifRef = doc(collection(db, 'notifications'));
       transaction.set(notifRef, {
         recipientRole: 'ACCOUNTING',
-        message: `DELIVERY CONFIRMED: Item: "${itemTitle}" (Qty: ${qty}) under PRS ${pr.slipNumber || pr.id.substring(0,8)} has been received and deposited atomically into Warehouse & ${targetOfficeName} inventory.`,
+        message: `DELIVERY CONFIRMED: Item: "${itemTitle}" (Qty: ${qty}) under PRS ${pr.slipNumber || pr.id.substring(0, 8)} has been received and deposited atomically into Warehouse & ${targetOfficeName} inventory.`,
         timestamp,
         isRead: false,
         type: 'RECEIPT',
@@ -848,7 +849,7 @@ interface RequisitionsManagerProps {
 export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ offices, userName, userRole, userOffice, initialTab, initialSearch }) => {
   // Active module tab: 'PAR' | 'ICS' | 'REQUISITION' | 'FINANCIAL'
   const [activeRequestTab, setActiveRequestTab] = useState<'PAR' | 'ICS' | 'REQUISITION' | 'FINANCIAL'>(initialTab || 'PAR');
-  
+
   const [requests, setRequests] = useState<AssetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -876,16 +877,18 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
   const [showViewContentModal, setShowViewContentModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AssetRequest | null>(null);
   const [viewingRequest, setViewingRequest] = useState<AssetRequest | null>(null);
+  const [linkedApprovalReport, setLinkedApprovalReport] = useState<any>(null);
   const [destinationOffice, setDestinationOffice] = useState('');
 
   // Requisition Form Fields
   const [formItemArticle, setFormItemArticle] = useState('');
   const [formCategory, setFormCategory] = useState('ICT Equipment');
   const [formQuantity, setFormQuantity] = useState(1);
+  const [formUnitValue, setFormUnitValue] = useState(0);
   const [formJustification, setFormJustification] = useState('');
   const [formOffice, setFormOffice] = useState('');
   const [formRequestedBy, setFormRequestedBy] = useState('');
-  const [formStatus, setFormStatus] = useState<'PENDING' | 'FORWARDED' | 'APPROVED' | 'DECLINED' | 'DISPATCHED' | 'REJECTED' | 'RETURNED_FOR_REVISION'>('PENDING');
+  const [formStatus, setFormStatus] = useState<AssetRequest['status']>('PENDING');
   const [formRemarks, setFormRemarks] = useState('');
 
   // PAR/ICS/Accounting Request form fields
@@ -902,7 +905,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
   // Inline comment states
   const [quickRemarks, setQuickRemarks] = useState<{ [key: string]: string }>({});
   const [submittingActionId, setSubmittingActionId] = useState<string | null>(null);
-  
+
   const [expandedAuditIds, setExpandedAuditIds] = useState<{ [key: string]: boolean }>({});
   const [notifications, setNotifications] = useState<any[]>([]);
 
@@ -1090,6 +1093,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       setFormItemArticle(req.itemArticle);
       setFormCategory(req.category || 'ICT Equipment');
       setFormQuantity(req.quantity);
+      setFormUnitValue(req.unitValue || 0);
       setFormJustification(req.justification);
       setFormOffice(req.office);
       setFormRequestedBy(req.requestedBy);
@@ -1146,6 +1150,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         });
       }
 
+      const isOfficeHeadReq = userRole === UserRole.OFFICE_HEAD && activeRequestTab === 'REQUISITION';
+
       if (activeRequestTab === 'REQUISITION' || isSlipRequest) {
         payload = {
           masterAssetId,
@@ -1156,14 +1162,14 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           justification: formJustification,
           office: formOffice,
           originatingOffice: formOffice,
-          recipientOffice: isSlipRequest ? 'Accounting Office' : '',
+          recipientOffice: isOfficeHeadReq ? 'Accounting Office' : (isSlipRequest ? 'Accounting Office' : ''),
           requestNumber: formRequestNumber || `${activeRequestTab}-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           requestedBy: formRequestedBy,
           requestedAt: new Date().toISOString(),
-          status: formStatus,
+          status: isOfficeHeadReq ? 'Pending Accounting Review' : formStatus,
           responseRemarks: formRemarks || '',
-          handledBy: formStatus !== 'PENDING' ? `${userName} (Admin)` : '',
-          handledAt: formStatus !== 'PENDING' ? new Date().toISOString() : ''
+          handledBy: formStatus !== 'PENDING' && !isOfficeHeadReq ? `${userName} (Admin)` : '',
+          handledAt: formStatus !== 'PENDING' && !isOfficeHeadReq ? new Date().toISOString() : ''
         };
       } else {
         payload = {
@@ -1190,7 +1196,9 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         id: Math.random().toString(36).substr(2, 9),
         timestamp,
         action: 'Submitted',
-        details: `Request of "${payload.itemArticle}" initially logged by Office Head ${payload.requestedBy} (${payload.office}). Status is PENDING review.`
+        details: isOfficeHeadReq
+          ? `Requisition "${payload.itemArticle}" submitted by ${payload.requestedBy} (${payload.office}). Status is Pending Accounting Review.`
+          : `Request of "${payload.itemArticle}" initially logged by ${payload.requestedBy} (${payload.office}). Status is PENDING review.`
       }];
       payload.history = initialHistory;
 
@@ -1214,13 +1222,16 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         user: userName
       });
 
-      // Notify the Engineer/Admin of the new incoming request
+      // Notify recipient (ACCOUNTING for Office Head Requisitions, ADMIN for others)
+      const targetRole = isOfficeHeadReq || payload.requestType === 'PAR' || payload.requestType === 'ICS' ? 'ACCOUNTING' : 'ADMIN';
       await addDoc(collection(db, 'notifications'), {
-        recipientRole: payload.requestType === 'PAR' || payload.requestType === 'ICS' ? 'ACCOUNTING' : 'ADMIN',
-        ...(payload.requestType === 'PAR' || payload.requestType === 'ICS' ? { recipientOffice: 'Accounting Office' } : {}),
-        message: payload.requestType === 'PAR' || payload.requestType === 'ICS'
-          ? `New ${payload.requestType} requesting slip ${payload.requestNumber} from ${payload.office} is ready for Accounting review.`
-          : `New request "${payload.itemArticle}" is submitted by ${payload.requestedBy} (${payload.office}) for review.`,
+        recipientRole: targetRole,
+        ...(targetRole === 'ACCOUNTING' ? { recipientOffice: 'Accounting Office' } : {}),
+        message: isOfficeHeadReq
+          ? `New Requisition "${payload.itemArticle}" submitted by ${payload.requestedBy} (${payload.office}) for Accounting Review & PAR/ICS Compilation.`
+          : payload.requestType === 'PAR' || payload.requestType === 'ICS'
+            ? `New ${payload.requestType} requesting slip ${payload.requestNumber} from ${payload.office} is ready for Accounting review.`
+            : `New request "${payload.itemArticle}" is submitted by ${payload.requestedBy} (${payload.office}) for review.`,
         timestamp,
         isRead: false,
         type: 'SUBMISSION',
@@ -1239,6 +1250,18 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
     e.preventDefault();
     if (!selectedRequest) return;
 
+    if (selectedRequest.requestType === 'REQUISITION' && selectedRequest.status !== 'PENDING' && formStatus === 'APPROVED') {
+      if (!selectedRequest.linkedParIcsReportId) {
+        alert('Approval blocked: this requisition has no linked PAR/ICS report.');
+        return;
+      }
+      const pairedReport = await getDoc(doc(db, 'reports', selectedRequest.linkedParIcsReportId));
+      if (!pairedReport.exists() || pairedReport.data().originalRequisitionId !== selectedRequest.id || !((pairedReport.data().status === 'Pending Approval' && pairedReport.data().forwardedStatus === 'Pending') || pairedReport.data().status === 'Approved')) {
+        alert('Approval blocked: the linked PAR/ICS report must exist, match this requisition, and be forwarded to Engineer/Admin.');
+        return;
+      }
+    }
+
     // Only allow users with the Engineer/Admin (ADMIN) role to approve or modify statuses of shipment (PAR/ICS) requests
     if (selectedRequest.requestType === 'PAR' || selectedRequest.requestType === 'ICS') {
       if (formStatus === 'APPROVED' || formStatus !== selectedRequest.status) {
@@ -1251,8 +1274,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
     try {
       const docRef = doc(db, 'requests', selectedRequest.id);
+      const isAccountingRequisitionEdit = userRole === UserRole.ACCOUNTING && selectedRequest.requestType === 'REQUISITION' && selectedRequest.status === 'Pending Accounting Review';
+      const isOfficeHeadResubmission = userRole === UserRole.OFFICE_HEAD && selectedRequest.requestType === 'REQUISITION' && ['Returned for Revision', 'RETURNED_FOR_REVISION'].includes(selectedRequest.status);
       let updates: any = {
-        status: formStatus,
+        status: isAccountingRequisitionEdit || isOfficeHeadResubmission ? 'Pending Accounting Review' : formStatus,
         responseRemarks: formRemarks || '',
       };
 
@@ -1262,6 +1287,11 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         updates.justification = formJustification;
         updates.office = formOffice;
         updates.requestedBy = formRequestedBy;
+        if (isAccountingRequisitionEdit) {
+          updates.unitValue = Number(formUnitValue || 0);
+          updates.accountingReviewedBy = userName;
+          updates.accountingReviewedAt = new Date().toISOString();
+        }
         updates.requestNumber = formRequestNumber;
         updates.assignedAdmin = formAssignedAdmin;
         updates.attachedDocs = formAttachedDocs;
@@ -1302,6 +1332,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         actionDesc = 'Status Update';
         logDesc = `Request status changed from ${selectedRequest.status} to ${formStatus} by ${userName}. Remarks: "${formRemarks || 'None'}"`;
       }
+      if (isAccountingRequisitionEdit) {
+        actionDesc = 'Accounting Requisition Edit';
+        logDesc = `Accounting updated requisition details for "${updates.itemArticle}" (quantity ${updates.quantity}, unit value ${updates.unitValue}) by ${userName}.`;
+      }
 
       const historyLog = {
         id: Math.random().toString(36).substr(2, 9),
@@ -1311,6 +1345,18 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       };
 
       updates.history = [...currentHistory, historyLog];
+
+      if (isOfficeHeadResubmission) {
+        updates.linkedParIcsReportId = null;
+        updates.accountingReviewedBy = null;
+        updates.accountingReviewedAt = null;
+        updates.history = [...updates.history, { id: Math.random().toString(36).slice(2), timestamp, action: 'Resubmitted to Accounting', details: `Office Head resubmitted revised requisition to Accounting by ${userName}.` }];
+      }
+
+      if (selectedRequest.requestType === 'REQUISITION' && (formStatus === 'APPROVED' || formStatus === 'DISPATCHED') && !selectedRequest.linkedParIcsReportId) {
+        alert('Approval blocked: this requisition has no linked PAR/ICS report.');
+        return;
+      }
 
       let handledViaTransaction = false;
 
@@ -1388,6 +1434,15 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
       if (!handledViaTransaction) {
         await updateDoc(docRef, updates);
+        if (selectedRequest.requestType === 'REQUISITION' && formStatus === 'APPROVED' && selectedRequest.linkedParIcsReportId) {
+          await updateDoc(doc(db, 'reports', selectedRequest.linkedParIcsReportId), { status: 'Approved', forwardedStatus: 'Approved', adminRemarks: formRemarks || 'Approved' });
+        }
+        if (isOfficeHeadResubmission) {
+          if (selectedRequest.linkedParIcsReportId) {
+            await updateDoc(doc(db, 'reports', selectedRequest.linkedParIcsReportId), { isSuperseded: true, forwardedStatus: 'Superseded' });
+          }
+          await addDoc(collection(db, 'notifications'), { recipientRole: 'ACCOUNTING', recipientOffice: 'Accounting Office', message: `Revised requisition "${updates.itemArticle || selectedRequest.itemArticle}" (${updates.requestNumber || selectedRequest.requestNumber || selectedRequest.id.slice(0, 8)}) has been resubmitted for Accounting review.`, timestamp, isRead: false, type: 'SUBMISSION', reportId: selectedRequest.id });
+        }
 
         // Synchronize with 'reports' collection if linked via reportId
         if (selectedRequest.reportId) {
@@ -1415,7 +1470,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       }
 
       await addDoc(collection(db, 'system_logs'), {
-        action: `Unified Requests: Updated ${selectedRequest.requestType?.toLowerCase()} request ID ${selectedRequest.id}`,
+        action: isAccountingRequisitionEdit ? `Accounting edited Office Head requisition ${selectedRequest.id}: ${logDesc}` : `Unified Requests: Updated ${selectedRequest.requestType?.toLowerCase()} request ID ${selectedRequest.id}`,
         module: 'Requests Center',
         timestamp,
         user: userName
@@ -1426,7 +1481,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         const isRejected = formStatus === 'REJECTED' || formStatus === 'DECLINED' || formStatus === 'Returned for Correction' || formStatus === 'RETURNED_FOR_REVISION';
         const isDispatched = formStatus === 'DISPATCHED';
         const actionText = isApproved ? 'APPROVAL' : (isRejected ? 'REJECTION' : (isDispatched ? 'DISPATCH' : 'UPDATE'));
-        
+
         await logPRSAction({
           user: userName,
           role: userRole || 'Admin',
@@ -1478,8 +1533,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
     const docTitle = req.requestType === 'PAR'
       ? 'PROPERTY ACKNOWLEDGEMENT RECEIPT'
       : req.requestType === 'ICS'
-      ? 'INVENTORY CUSTODIAN SLIP'
-      : 'OFFICIAL REQUEST DOCUMENT';
+        ? 'INVENTORY CUSTODIAN SLIP'
+        : 'OFFICIAL REQUEST DOCUMENT';
     const docSubtitle = req.requestType === 'PAR' ? 'Annex B' : req.requestType === 'ICS' ? 'Appendix 59' : '';
     const items: any[] = req.items_snapshot && req.items_snapshot.length > 0 ? req.items_snapshot : [{
       article: req.itemArticle,
@@ -1505,8 +1560,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           <td style="border:1px solid #000;padding:6px 8px;font-style:italic;color:#555;">${item.description || '—'}</td>
           <td style="border:1px solid #000;padding:6px 8px;text-align:center;font-family:monospace;font-size:10pt;color:#1d4ed8;">${item.propertyNumber || '—'}</td>
           <td style="border:1px solid #000;padding:6px 8px;text-align:center;font-weight:700;">${qty}</td>
-          <td style="border:1px solid #000;padding:6px 8px;text-align:right;">&#8369;${uVal.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
-          <td style="border:1px solid #000;padding:6px 8px;text-align:right;font-weight:900;">&#8369;${total.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+          <td style="border:1px solid #000;padding:6px 8px;text-align:right;">&#8369;${uVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+          <td style="border:1px solid #000;padding:6px 8px;text-align:right;font-weight:900;">&#8369;${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         </tr>`;
     }).join('');
 
@@ -1594,7 +1649,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
             ${rowsHtml}
             <tr class="total-row">
               <td colspan="6" style="border:1px solid #000;padding:8px 10px;text-align:right;font-weight:900;font-size:10pt;">GRAND TOTAL AMOUNT:</td>
-              <td style="border:1px solid #000;padding:8px 10px;text-align:right;font-weight:900;font-size:11pt;color:#1d4ed8;">&#8369;${totalAmount.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+              <td style="border:1px solid #000;padding:8px 10px;text-align:right;font-weight:900;font-size:11pt;color:#1d4ed8;">&#8369;${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             </tr>
           </tbody>
         </table>
@@ -1630,41 +1685,102 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         return;
       }
     }
+
+    // Dual-document verification check for REQUISITION approval
+    if (req.requestType === 'REQUISITION' && req.status !== 'PENDING' && nextStatus === 'APPROVED') {
+      if (!req.linkedParIcsReportId) {
+        alert("Approval Blocked: Dual-document verification required. This requisition has not been linked to a PAR/ICS report compiled by Accounting.");
+        return;
+      }
+      try {
+        const linkedReportSnap = await getDoc(doc(db, 'reports', req.linkedParIcsReportId));
+        if (!linkedReportSnap.exists()) {
+          alert("Approval Blocked: Linked PAR/ICS report was not found in database.");
+          return;
+        }
+        const reportData = linkedReportSnap.data();
+        if (reportData.originalRequisitionId !== req.id) {
+          alert('Approval Blocked: The PAR/ICS report is not linked to this requisition.');
+          return;
+        }
+        if (!((reportData.status === 'Pending Approval' && reportData.forwardedStatus === 'Pending') || reportData.status === 'Approved')) {
+          alert(`Approval Blocked: Linked PAR/ICS report draft has status '${reportData.status}'. Accounting must forward both documents to Engineer/Admin before approval.`);
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking linked PAR/ICS report:", err);
+        alert("Failed to verify linked PAR/ICS report.");
+        return;
+      }
+    }
+
     setSubmittingActionId(req.id);
-    const defaultRemarks = 
-      nextStatus === 'APPROVED' ? "Approved as verified under evaluation." : 
-      nextStatus === 'Returned for Correction' ? "Returned for correction. Please review comments." :
-      nextStatus === 'RETURNED_FOR_REVISION' ? "Returned for revision. Please review comments." :
-      "Decline decision formulated.";
-    
+    let finalNextStatus = nextStatus;
+    if (req.requestType === 'REQUISITION' && (nextStatus === 'RETURNED_FOR_REVISION' || nextStatus === 'Returned for Correction' || nextStatus === 'DECLINED' || nextStatus === 'REJECTED')) {
+      finalNextStatus = 'Returned for Revision';
+    }
+
+    const defaultRemarks =
+      finalNextStatus === 'APPROVED' ? "Approved as verified under evaluation." :
+        finalNextStatus === 'Returned for Revision' ? "Returned for revision. Please review comments." :
+          finalNextStatus === 'Returned for Correction' ? "Returned for correction. Please review comments." :
+            "Decline decision formulated.";
+
     const remarkValue = quickRemarks[req.id] || defaultRemarks;
     const timestamp = new Date().toISOString();
 
     try {
       const docRef = doc(db, 'requests', req.id);
-      
+
       const historyEntry = {
         id: Math.random().toString(36).substr(2, 9),
         timestamp,
-        action: 
-          nextStatus === 'APPROVED' ? 'ApprovedByAdmin' : 
-          nextStatus === 'Returned for Correction' ? 'ReturnedForCorrection' :
-          nextStatus === 'RETURNED_FOR_REVISION' ? 'ReturnedForRevision' : 
-          'RejectedByAdmin',
-        details: `Request of "${req.itemArticle}" status set to ${nextStatus} by ${userName}. Remarks: "${remarkValue}"`
+        action:
+          finalNextStatus === 'APPROVED' ? 'ApprovedByAdmin' :
+            finalNextStatus === 'Returned for Revision' ? 'ReturnedForRevision' :
+              finalNextStatus === 'Returned for Correction' ? 'ReturnedForCorrection' :
+                'RejectedByAdmin',
+        details: `Request of "${req.itemArticle}" status set to ${finalNextStatus} by ${userName}. Remarks: "${remarkValue}"`
       };
 
       const updatedHistory = [...(req.history || []), historyEntry];
+      if (req.requestType === 'REQUISITION' && nextStatus === 'APPROVED' && !req.linkedParIcsReportId) {
+        alert('Approval blocked: this requisition has no linked PAR/ICS report.');
+        return;
+      }
 
       let handledViaTransaction = false;
       let additionalUpdates: any = {};
       if (req.requestType === 'REQUISITION') {
-        const isNowApprovedOrDispatched = (nextStatus === 'APPROVED');
+        const isNowApprovedOrDispatched = (finalNextStatus === 'APPROVED');
         const wasApprovedOrDispatched = (req.status === 'APPROVED' || req.status === 'DISPATCHED');
         if (isNowApprovedOrDispatched && !wasApprovedOrDispatched) {
           await deductInventoryStock(req.itemArticle, req.office, req.quantity);
+          if (req.linkedParIcsReportId) {
+            await updateDoc(doc(db, 'reports', req.linkedParIcsReportId), {
+              status: 'Approved',
+              forwardedStatus: 'Approved',
+              adminRemarks: remarkValue
+            });
+          }
         } else if (!isNowApprovedOrDispatched && wasApprovedOrDispatched) {
           await replenishInventoryStock(req.itemArticle, req.office, req.quantity);
+        }
+        if (finalNextStatus === 'Returned for Revision' && req.linkedParIcsReportId) {
+          await updateDoc(doc(db, 'reports', req.linkedParIcsReportId), {
+            status: 'Returned for Revision',
+            forwardedStatus: 'Pending',
+            adminRemarks: remarkValue
+          });
+          await addDoc(collection(db, 'notifications'), {
+            recipientRole: 'OFFICE_HEAD',
+            recipientOffice: req.originatingOffice || req.office,
+            message: `REQUISITION RETURNED: Your requisition "${req.itemArticle}" has been returned for revision by ${userName}. Remarks: "${remarkValue}"`,
+            timestamp,
+            isRead: false,
+            type: 'DECISION',
+            reportId: req.id
+          });
         }
       } else if (req.requestType === 'FINANCIAL') {
         const isNowApproved = (nextStatus === 'APPROVED');
@@ -1698,7 +1814,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
       if (!handledViaTransaction) {
         await updateDoc(docRef, {
-          status: nextStatus,
+          status: finalNextStatus,
           responseRemarks: remarkValue,
           adminRemarks: remarkValue, // safety duplication
           handledBy: `${userName} (Admin)`,
@@ -1751,7 +1867,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         const isRejected = nextStatus === 'REJECTED' || nextStatus === 'DECLINED' || nextStatus === 'Returned for Correction' || nextStatus === 'RETURNED_FOR_REVISION';
         const isDispatched = nextStatus === 'DISPATCHED';
         const actionText = isApproved ? 'APPROVAL' : (isRejected ? 'REJECTION' : (isDispatched ? 'DISPATCH' : 'UPDATE'));
-        
+
         await logPRSAction({
           user: userName,
           role: userRole || 'Admin',
@@ -1810,7 +1926,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
   // Searching & Filtering
   const filteredRequests = tabRequests.filter(req => {
-    const matchesSearch = 
+    const matchesSearch =
       (req.itemArticle || '').toLowerCase().includes(search.toLowerCase()) ||
       (req.requestedBy || '').toLowerCase().includes(search.toLowerCase()) ||
       (req.justification || '').toLowerCase().includes(search.toLowerCase());
@@ -1836,7 +1952,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
   return (
     <div className="space-y-6 pb-12">
-      
+
       {/* Title Header with Unified Tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-gray-150">
         <div>
@@ -1870,11 +1986,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           <button
             key={tab.id}
             onClick={() => setActiveRequestTab(tab.id as any)}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center space-x-2 ${
-              activeRequestTab === tab.id
+            className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center space-x-2 ${activeRequestTab === tab.id
                 ? 'bg-slate-900 text-white shadow-md scale-[1.02]'
                 : 'bg-white hover:bg-gray-100 text-slate-600 border border-gray-200'
-            }`}
+              }`}
           >
             <span>{tab.label}</span>
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeRequestTab === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-slate-700'}`}>
@@ -1947,12 +2062,11 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
             return (
               <div
                 key={req.id}
-                className={`bg-white rounded-[28px] p-6 border shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition-all duration-200 ${
-                  req.status === 'PENDING' || req.status === 'Submitted' || req.status === 'Pending Engineer/Admin Review' || req.status === 'Resubmitted' ? 'border-amber-100 hover:border-amber-200' :
-                  req.status === 'APPROVED' || req.status === 'Completed' ? 'border-emerald-100 hover:border-emerald-200' :
-                  req.status === 'Returned for Correction' || req.status === 'RETURNED_FOR_REVISION' ? 'border-orange-250 bg-orange-50/5 hover:border-orange-350' :
-                  'border-slate-150 hover:border-slate-300'
-                }`}
+                className={`bg-white rounded-[28px] p-6 border shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition-all duration-200 ${req.status === 'PENDING' || req.status === 'Submitted' || req.status === 'Pending Engineer/Admin Review' || req.status === 'Resubmitted' ? 'border-amber-100 hover:border-amber-200' :
+                    req.status === 'APPROVED' || req.status === 'Completed' ? 'border-emerald-100 hover:border-emerald-200' :
+                      req.status === 'Returned for Correction' || req.status === 'RETURNED_FOR_REVISION' ? 'border-orange-250 bg-orange-50/5 hover:border-orange-350' :
+                        'border-slate-150 hover:border-slate-300'
+                  }`}
               >
                 <div>
                   {/* Card Header stats & priority badges */}
@@ -1967,11 +2081,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                           {req.requestType} REQUEST
                         </span>
                       ) : isFinancial ? (
-                        <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider border ${
-                          req.priority === 'High' ? 'bg-red-50 text-red-650 border-red-200' :
-                          req.priority === 'Medium' ? 'bg-indigo-50 text-indigo-650 border-indigo-200' :
-                          'bg-slate-50 text-slate-500 border-slate-200'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[7.5px] font-black uppercase tracking-wider border ${req.priority === 'High' ? 'bg-red-50 text-red-650 border-red-200' :
+                            req.priority === 'Medium' ? 'bg-indigo-50 text-indigo-650 border-indigo-200' :
+                              'bg-slate-50 text-slate-500 border-slate-200'
+                          }`}>
                           {req.priority || 'Medium'} Priority
                         </span>
                       ) : (
@@ -2079,12 +2192,14 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
                 {/* Direct quick action approvals */}
                 <div className="pt-3 border-t border-gray-100 flex flex-col space-y-3">
-                  
+
                   {/* View Document Content Button */}
                   <button
                     type="button"
                     onClick={() => {
                       setViewingRequest(req);
+                      setLinkedApprovalReport(null);
+                      if (req.linkedParIcsReportId) getDoc(doc(db, 'reports', req.linkedParIcsReportId)).then(s => setLinkedApprovalReport(s.exists() ? { id: s.id, ...s.data() } : null));
                       setShowViewContentModal(true);
                     }}
                     className="w-full py-2.5 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center justify-center space-x-2 cursor-pointer"
@@ -2095,9 +2210,12 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                     </svg>
                     <span>View {isAccounting ? `${req.requestType} Document` : 'Request'} Content</span>
                   </button>
-                  
+                  {userRole === UserRole.ACCOUNTING && req.requestType === 'REQUISITION' && req.status === 'Pending Accounting Review' && (
+                    <button onClick={() => openEditHandler(req)} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider">Review / Edit Requisition</button>
+                  )}
+
                   {/* Evaluation Actions form for standard requisitions only. PAR/ICS admin requests are view-only here. */}
-                  {!isAccounting && req.status === 'PENDING' && (userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
+                  {!isAccounting && (req.status === 'PENDING' || (req.requestType === 'REQUISITION' && req.status === 'Pending Engineer/Admin Review')) && (userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
                     <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Submit Evaluation Decision</span>
                       <input
@@ -2110,7 +2228,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                       <div className="grid grid-cols-3 gap-2">
                         <button
                           onClick={() => handleQuickDecisionWithStatus(req, 'APPROVED')}
-                          disabled={submittingActionId !== null}
+                          disabled={submittingActionId !== null || (req.requestType === 'REQUISITION' && req.status !== 'PENDING')}
+                          title={req.requestType === 'REQUISITION' ? 'Open the paired approval view to verify both requisition and PAR/ICS documents.' : undefined}
                           className="py-1.5 bg-emerald-600 hover:bg-emerald-750 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-sm active:scale-95"
                         >
                           Approve
@@ -2134,21 +2253,21 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   )}
 
                   {/* Revise trigger if RETURNED_FOR_REVISION or Returned for Correction */}
-                  {((req.status === 'RETURNED_FOR_REVISION' && (userRole === UserRole.OFFICE_HEAD || userRole === UserRole.ADMIN)) ||
+                  {((['RETURNED_FOR_REVISION', 'Returned for Revision'].includes(req.status) && (userRole === UserRole.OFFICE_HEAD || userRole === UserRole.ADMIN)) ||
                     (isAccounting && req.status === 'Returned for Correction' && (userRole === UserRole.ACCOUNTING || userRole === UserRole.ADMIN))) && (
-                    <button
-                      onClick={() => {
-                        setFormStatus(isAccounting ? 'Resubmitted' : 'PENDING'); // automatically resets back to pending upon resubmit edits
-                        openEditHandler(req);
-                      }}
-                      className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17" />
-                      </svg>
-                      <span>Revise & Re-submit Proposal</span>
-                    </button>
-                  )}
+                      <button
+                        onClick={() => {
+                          setFormStatus(isAccounting ? 'Resubmitted' : 'PENDING'); // automatically resets back to pending upon resubmit edits
+                          openEditHandler(req);
+                        }}
+                        className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17" />
+                        </svg>
+                        <span>Revise & Re-submit Proposal</span>
+                      </button>
+                    )}
 
                   {/* Standard Operations (Edit/Delete controls) */}
                   <div className="flex items-center justify-between">
@@ -2232,7 +2351,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
               </div>
 
               <form onSubmit={handleSaveNewRequest} className="mt-4 space-y-4">
-                
+
                 {activeRequestTab === 'PAR' || activeRequestTab === 'ICS' || activeRequestTab === 'REQUISITION' ? (
                   /* Requisition Fields Component */
                   <div className="grid grid-cols-2 gap-3.5">
@@ -2279,6 +2398,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                         className="w-full bg-slate-50 border border-slate-200 py-2.5 px-3 rounded-xl text-xs font-semibold outline-none focus:border-blue-500"
                       />
                     </div>
+
 
                     <div className="col-span-2 space-y-1">
                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">{activeRequestTab === 'PAR' || activeRequestTab === 'ICS' ? 'Purpose / Justification' : 'Justification Reason'}</label>
@@ -2694,7 +2814,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                           <option value="RETURNED_FOR_REVISION">Returned for Revision</option>
                           {selectedRequest.requestType === 'REQUISITION' && (
                             <>
-                              <option value="FORWARDED">Forwarded to Administrator</option>
+                              {userRole !== UserRole.OFFICE_HEAD && <option value="FORWARDED">Forwarded to Administrator</option>}
                               <option value="DISPATCHED">Dispatched items</option>
                             </>
                           )}
@@ -2756,7 +2876,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   Delete Request Permanent?
                 </h3>
                 <p className="text-xs text-gray-400 font-bold uppercase leading-relaxed max-w-xs mx-auto">
-                  Are you absolutely sure you want to delete this log? 
+                  Are you absolutely sure you want to delete this log?
                   <span className="block text-slate-850 font-black mt-1.5 text-sm">"{selectedRequest.itemArticle}"</span>
                   This operation is IRREVERSIBLE.
                 </p>
@@ -2791,7 +2911,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-[32px] w-full max-w-4xl p-6 md:p-8 shadow-2xl border border-gray-100 space-y-6 my-8 max-h-[90vh] overflow-y-auto font-sans"
+              className="bg-white rounded-[32px] w-full max-w-7xl p-6 md:p-8 shadow-2xl border border-gray-100 space-y-6 my-8 max-h-[90vh] overflow-y-auto font-sans"
             >
               {/* Header */}
               <div className="flex items-start justify-between border-b border-gray-150 pb-4">
@@ -2802,8 +2922,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                       {viewingRequest.requestType === 'PAR'
                         ? 'PROPERTY ACKNOWLEDGEMENT RECEIPT (PAR)'
                         : viewingRequest.requestType === 'ICS'
-                        ? 'INVENTORY CUSTODIAN SLIP (ICS)'
-                        : 'OFFICIAL REQUEST DOCUMENT'}
+                          ? 'INVENTORY CUSTODIAN SLIP (ICS)'
+                          : 'OFFICIAL REQUEST DOCUMENT'}
                     </h2>
                   </div>
                   <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1 ml-4">
@@ -2859,6 +2979,13 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   </span>
                 </div>
               </div>
+
+              {userRole === UserRole.ADMIN && viewingRequest.requestType === 'REQUISITION' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <section className="border border-slate-200 rounded-2xl p-4"><h3 className="text-xs font-black uppercase text-slate-800 mb-2">Original Requisition</h3><p className="text-xs font-bold">{viewingRequest.quantity} × {viewingRequest.itemArticle}</p><p className="text-xs text-slate-600 mt-1">{viewingRequest.justification}</p><p className="text-[10px] text-slate-500 mt-2">Office: {viewingRequest.office} · Unit value: ₱{Number(viewingRequest.unitValue || 0).toLocaleString()}</p></section>
+                  <section className="border border-indigo-200 bg-indigo-50/40 rounded-2xl p-4"><h3 className="text-xs font-black uppercase text-indigo-800 mb-2">Linked PAR / ICS Report</h3>{linkedApprovalReport ? <><p className="text-xs font-bold">{linkedApprovalReport.report_type} · {linkedApprovalReport.parNo || linkedApprovalReport.icsNo || linkedApprovalReport.id}</p><p className="text-[10px] text-slate-600 mt-1">Status: {linkedApprovalReport.status} · Items: {linkedApprovalReport.items_snapshot?.length || 0}</p><ul className="mt-2 text-[10px] space-y-1">{(linkedApprovalReport.items_snapshot || []).map((item: any, i: number) => <li key={i}>{item.article} · Qty {item.qtyPropertyCard || item.quantity || 1} · ₱{Number(item.unitValue || 0).toLocaleString()}</li>)}</ul></> : <p className="text-xs text-rose-700">{viewingRequest.linkedParIcsReportId ? 'Linked report missing or loading.' : 'No linked report. Accounting must generate and forward PAR/ICS before approval.'}</p>}</section>
+                </div>
+              )}
 
               {/* Justification / Purpose */}
               {viewingRequest.justification && (
@@ -2950,11 +3077,12 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                           await handleQuickDecisionWithStatus(viewingRequest, 'APPROVED');
                           setShowViewContentModal(false);
                         }}
-                        disabled={submittingActionId !== null}
+                        disabled={submittingActionId !== null || (viewingRequest.requestType === 'REQUISITION' && viewingRequest.status !== 'PENDING' && (!viewingRequest.linkedParIcsReportId || !linkedApprovalReport || linkedApprovalReport.originalRequisitionId !== viewingRequest.id || !((linkedApprovalReport.status === 'Pending Approval' && linkedApprovalReport.forwardedStatus === 'Pending') || linkedApprovalReport.status === 'Approved')))}
                         className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 cursor-pointer"
                       >
                         Approve Document
                       </button>
+                      {viewingRequest.requestType === 'REQUISITION' && viewingRequest.status !== 'PENDING' && (!viewingRequest.linkedParIcsReportId || !linkedApprovalReport || linkedApprovalReport.originalRequisitionId !== viewingRequest.id || !((linkedApprovalReport.status === 'Pending Approval' && linkedApprovalReport.forwardedStatus === 'Pending') || linkedApprovalReport.status === 'Approved')) && <span className="text-[10px] text-rose-700">Approve disabled: the linked PAR/ICS must exist, match this requisition, and be forwarded by Accounting.</span>}
                       <button
                         onClick={async () => {
                           await handleQuickDecisionWithStatus(viewingRequest, 'REJECTED');
@@ -2990,7 +3118,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           </div>
         )}
       </AnimatePresence>
-      
+
     </div>
   );
 };

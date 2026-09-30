@@ -1605,7 +1605,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         requestedBy: prRequestedPerson.trim(),
         justification: prJustification.trim() || "Purchase Request",
         priority: prPriority,
-        status: "Pending Delivery",
+        status: "Pending Accounting Review",
         office: requestingOffice,
         targetOffice,
         targetOfficeHead: prRequestedPerson.trim(),
@@ -1623,10 +1623,10 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         itemArticle: prItemArticle.trim(),
         quantity,
         amount: computedAmount,
-        status: "Sent",
+        status: "Pending Accounting Review",
         user: userName,
         office: requestingOffice,
-        details: `Purchase Request (PR #${finalSlipNumber}) created by ${requestingOffice} (${prRequestedPerson}) for "${prItemArticle.trim()}" (${prQuantity} ${prUnit} @ ₱${prUnitCost}/unit). Destination department: ${targetOffice}.`
+        details: `Purchase Request (PR #${finalSlipNumber}) created by ${requestingOffice} (${prRequestedPerson}) for "${prItemArticle.trim()}" (${prQuantity} ${prUnit} @ ₱${prUnitCost}/unit). Sent to Accounting for review. Destination department: ${targetOffice}.`
       });
 
       // Log in PRS Audit
@@ -1636,15 +1636,16 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         formType: 'PRS',
         transactionNumber: finalSlipNumber,
         timestamp: new Date().toISOString(),
-        action: `CREATION & SUBMISSION: ${requestingOffice} submitted PR #${finalSlipNumber} for destination department ${targetOffice} ("${prItemArticle.trim()}") with status "Pending Delivery"`,
+        action: `CREATION & SUBMISSION: ${requestingOffice} submitted PR #${finalSlipNumber} for destination department ${targetOffice} ("${prItemArticle.trim()}") with status "Pending Accounting Review"`,
         module: "Procurement Audit"
       });
 
-      // Notify Admin/Engineer
+      // Notify Accounting for review first (three-tier workflow)
       const notificationSourceLabel = requestingOffice === 'MDRRMO' ? 'Office Head' : requestingOffice;
       await addDoc(collection(db, "notifications"), {
-        recipientRole: 'ADMIN',
-        message: `NEW PR SUBMISSION: ${notificationSourceLabel} (${prRequestedPerson}) requested "${prItemArticle.trim()}" for ${targetOffice} under Purchase Request #${finalSlipNumber} (Qty: ${prQuantity} ${prUnit}).`,
+        recipientRole: 'ACCOUNTING',
+        recipientOffice: 'Accounting Office',
+        message: `NEW PR FOR REVIEW: ${notificationSourceLabel} (${prRequestedPerson}) submitted Purchase Request #${finalSlipNumber} for "${prItemArticle.trim()}" (Qty: ${prQuantity} ${prUnit}, Destination: ${targetOffice}). Please review and approve/reject.`,
         timestamp: new Date().toISOString(),
         isRead: false,
         type: 'NEW_REQUEST',
@@ -1655,7 +1656,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       await addDoc(collection(db, "system_logs"), {
         timestamp: new Date().toISOString(),
         user: userName,
-        action: `PR Submitted to Admin/Engineer: Slip #${finalSlipNumber} (${prQuantity}x ${prItemArticle}) for destination department ${targetOffice}`,
+        action: `PR Submitted to Accounting for Review: Slip #${finalSlipNumber} (${prQuantity}x ${prItemArticle}) for destination department ${targetOffice}`,
         module: "Office Head Portal"
       });
 
@@ -1679,7 +1680,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       setPrAssetSearchQuery('');
       setPrShowAssetDropdown(false);
 
-      alert(`Purchase Request (PR #${finalSlipNumber}) submitted successfully to Admin/Engineer for OFFICE HEAD!`);
+      alert(`Purchase Request (PR #${finalSlipNumber}) submitted successfully! It has been sent to Accounting for review.`);
     } catch (err) {
       console.error("Error creating request:", err);
       alert("Failed to submit request: " + (err instanceof Error ? err.message : String(err)));
@@ -1804,6 +1805,18 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                 <div className="w-12 h-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center font-bold">📝</div>
               </div>
             </div>
+
+            {assetRequests.filter(r => r.requestType === 'REQUISITION').length > 0 && (
+              <section className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">My Requisitions</h3>
+                {assetRequests.filter(r => r.requestType === 'REQUISITION').slice(0, 6).map(req => (
+                  <div key={req.id} className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs">
+                    <span className="font-bold text-slate-800">{req.itemArticle} · Qty {req.quantity}</span>
+                    <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase ${req.status === 'Pending Accounting Review' ? 'bg-amber-50 text-amber-700 border-amber-200' : req.status === 'Pending Engineer/Admin Review' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{req.status === 'Pending Accounting Review' ? 'Awaiting Accounting Review' : req.status === 'Pending Engineer/Admin Review' ? 'With Engineer for Approval' : req.status}</span>
+                  </div>
+                ))}
+              </section>
+            )}
 
             {/* Warranty Expiration Alerts Portal for Office Head */}
             {activeWarrantyNotifs.length > 0 && (

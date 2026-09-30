@@ -1,0 +1,7 @@
+components/AccountingDashboard.tsx
+components/OfficeHeadDashboard.tsx
+components/Reports.tsx
+components/RequisitionsManager.tsx
+firebase.ts
+firestore.rules
+types.ts
