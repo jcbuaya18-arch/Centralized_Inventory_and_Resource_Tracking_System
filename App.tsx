@@ -17,7 +17,6 @@ import { ProcurementTransactionHistory } from './components/ProcurementTransacti
 import { NotificationHistory } from './components/NotificationHistory';
 import MayorDashboard from './components/MayorDashboard';
 import OfficeHeadDashboard from './components/OfficeHeadDashboard';
-import AccountingDashboard from './components/AccountingDashboard';
 import { auth, db } from './firebase';
 import { collection, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
@@ -260,22 +259,6 @@ const App: React.FC = () => {
       );
     }
 
-    if (userProfile.role === UserRole.ACCOUNTING) {
-      return (
-        <AccountingDashboard
-          items={items} offices={offices} onLogout={handleLogout}
-          userName={userProfile.fullName}
-          onAddItem={handleAddItem} onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem}
-          reportsInitialTab={reportsInitialTab}
-          activeTabOverride={dashboardActiveTabOverride}
-          onResetOverride={() => setDashboardActiveTabOverride(null)}
-          user={userProfile} setView={setCurrentView}
-          onNotificationActionClick={handleNotificationActionClick}
-          profilePage={profilePage}
-        />
-      );
-    }
-
     return (
       <div className="gov-app flex h-screen overflow-hidden bg-gray-50">
         <Sidebar currentView={currentView} setView={setCurrentView} userRole={userProfile.role} onLogout={handleLogout} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} rolePermissions={rolePermissions} />
@@ -364,7 +347,7 @@ const App: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                if (userProfile.role === UserRole.OFFICE_HEAD || userProfile.role === UserRole.ACCOUNTING) {
+                if (userProfile.role === UserRole.OFFICE_HEAD) {
                   setDashboardActiveTabOverride('reports');
                   setReportsInitialTab('transfers');
                 } else {

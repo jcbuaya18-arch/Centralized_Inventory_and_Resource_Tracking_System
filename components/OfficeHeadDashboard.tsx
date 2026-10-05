@@ -1418,7 +1418,6 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
   };
   
   // Accounting-style PR Form states
-  const [prSlipNumber, setPrSlipNumber] = useState(() => "PR-" + Math.floor(100000 + Math.random() * 900000));
   const [prItemArticle, setPrItemArticle] = useState('');
   const [prCategory, setPrCategory] = useState('Office Equipment');
   const [prCondition, setPrCondition] = useState<'Good' | 'Damaged' | 'Brand New' | 'Fair' | 'Under Repair' | 'Poor' | 'Condemned'>('Good');
@@ -1520,14 +1519,14 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
     e.preventDefault();
     // The form asks for one total Amount, so the request is recorded as 1 unit at that amount
     const quantity = Number(prQuantity) || 1;
-    if (!prDatePurchased || !prSlipNumber.trim() || !prItemArticle.trim() || prUnitCost === '') {
-      alert("Please fill in the Date, PR No., Description, and Amount.");
+    if (!prDatePurchased || !prItemArticle.trim() || prUnitCost === '') {
+      alert("Please fill in the Date, Description, and Amount.");
       return;
     }
 
     setSubmitting(true);
     try {
-      const finalSlipNumber = prSlipNumber.trim().toUpperCase();
+      // The PR No. is assigned later by the Engineer/Admin on the Receiving & Inspection page
       const computedAmount = quantity * Number(prUnitCost || 0);
 
       // Resolve Master Asset record first or create one if missing
@@ -1581,7 +1580,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
 
       const payload = {
         masterAssetId,
-        slipNumber: finalSlipNumber,
+        slipNumber: '',
         itemArticle: prItemArticle.trim(),
         category: prCategory,
         equipmentType: prCategory,
@@ -1600,7 +1599,8 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         requestedBy: (prRequestedPerson.trim() || userName || 'Office Head'),
         justification: prJustification.trim() || "Purchase Request",
         priority: prPriority,
-        status: "Pending Accounting Review",
+        // Goes straight to the Admin/Engineer Receiving & Inspection page
+        status: "Pending Delivery",
         office: requestingOffice,
         targetOffice,
         targetOfficeHead: (prRequestedPerson.trim() || userName || 'Office Head'),
@@ -1613,15 +1613,15 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
 
       // Log in procurement_transactions
       await logProcurementTransaction({
-        slipNumber: finalSlipNumber,
+        slipNumber: '',
         requestId: prDocRef.id,
         itemArticle: prItemArticle.trim(),
         quantity,
         amount: computedAmount,
-        status: "Pending Accounting Review",
+        status: "Pending",
         user: userName,
         office: requestingOffice,
-        details: `Purchase Request (PR #${finalSlipNumber}) created by ${requestingOffice} (${prRequestedPerson}) for "${prItemArticle.trim()}" (${prQuantity} ${prUnit} @ ₱${prUnitCost}/unit). Sent to Accounting for review. Destination department: ${targetOffice}.`
+        details: `Purchase Request created by ${requestingOffice} (${prRequestedPerson}) for "${prItemArticle.trim()}" (${prQuantity} ${prUnit} @ ₱${prUnitCost}/unit). Sent to Admin/Engineer for receiving. Destination department: ${targetOffice}.`
       });
 
       // Log in PRS Audit
@@ -1629,18 +1629,17 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         user: userName,
         role: 'OFFICE_HEAD',
         formType: 'PRS',
-        transactionNumber: finalSlipNumber,
+        transactionNumber: prDocRef.id,
         timestamp: new Date().toISOString(),
-        action: `CREATION & SUBMISSION: ${requestingOffice} submitted PR #${finalSlipNumber} for destination department ${targetOffice} ("${prItemArticle.trim()}") with status "Pending Accounting Review"`,
+        action: `CREATION & SUBMISSION: ${requestingOffice} submitted a purchase request for destination department ${targetOffice} ("${prItemArticle.trim()}") with status "Pending Delivery"`,
         module: "Procurement Audit"
       });
 
-      // Notify Accounting for review first (three-tier workflow)
+      // Notify Admin/Engineer that a delivery is expected
       const notificationSourceLabel = requestingOffice === 'MDRRMO' ? 'Office Head' : requestingOffice;
       await addDoc(collection(db, "notifications"), {
-        recipientRole: 'ACCOUNTING',
-        recipientOffice: 'Accounting Office',
-        message: `NEW PR FOR REVIEW: ${notificationSourceLabel} (${prRequestedPerson}) submitted Purchase Request #${finalSlipNumber} for "${prItemArticle.trim()}" (Qty: ${prQuantity} ${prUnit}, Destination: ${targetOffice}). Please review and approve/reject.`,
+        recipientRole: 'ADMIN',
+        message: `NEW PR FOR RECEIVING: ${notificationSourceLabel} (${prRequestedPerson}) submitted a Purchase Request for "${prItemArticle.trim()}" (Qty: ${prQuantity} ${prUnit}, Destination: ${targetOffice}). It is now on the Receiving & Inspection page.`,
         timestamp: new Date().toISOString(),
         isRead: false,
         type: 'NEW_REQUEST',
@@ -1651,7 +1650,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       await addDoc(collection(db, "system_logs"), {
         timestamp: new Date().toISOString(),
         user: userName,
-        action: `PR Submitted to Accounting for Review: Slip #${finalSlipNumber} (${prQuantity}x ${prItemArticle}) for destination department ${targetOffice}`,
+        action: `PR Submitted to Admin/Engineer for Receiving: (${prQuantity}x ${prItemArticle}) for destination department ${targetOffice}`,
         module: "Office Head Portal"
       });
 
@@ -1671,11 +1670,10 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       setPrDatePurchased(new Date().toISOString().split('T')[0]);
       setPrFundingSource('General Fund');
       setPrPriority('Medium');
-      setPrSlipNumber("PR-" + Math.floor(100000 + Math.random() * 900000));
       setPrAssetSearchQuery('');
       setPrShowAssetDropdown(false);
 
-      alert(`Purchase Request (PR #${finalSlipNumber}) submitted successfully! It has been sent to Accounting for review.`);
+      alert(`Purchase Request submitted successfully! It has been sent to the Admin/Engineer Receiving & Inspection page.`);
     } catch (err) {
       console.error("Error creating request:", err);
       alert("Failed to submit request: " + (err instanceof Error ? err.message : String(err)));
@@ -1990,9 +1988,6 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                   <h3 className="font-brand font-black text-slate-900 text-xl uppercase tracking-tight">Submit Purchase Request</h3>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mt-1">Official request for review, approval, and cargo dispatch</p>
                 </div>
-                <span className="shrink-0 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-[9px] font-black uppercase tracking-widest rounded-lg border border-indigo-100">
-                  PR #{prSlipNumber.replace('PR-', '')}
-                </span>
               </div>
 
               <div className="grid grid-cols-3 gap-2 rounded-xl border border-slate-100 bg-slate-50 p-2">
@@ -2064,33 +2059,18 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
               </div>
 
               <form onSubmit={handleSubmitRequisition} className="space-y-5">
-                {/* 1. Date & 2. PR No. */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Date <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={prDatePurchased}
-                      onChange={e => setPrDatePurchased(e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      PR No. <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. PR-2026-001"
-                      value={prSlipNumber}
-                      onChange={e => setPrSlipNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all uppercase"
-                    />
-                  </div>
+                {/* 1. Date (the PR No. is assigned by the Engineer/Admin) */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={prDatePurchased}
+                    onChange={e => setPrDatePurchased(e.target.value)}
+                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
+                  />
                 </div>
 
                 {/* 3. Description */}
@@ -2183,7 +2163,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
-                      <span>Submit Purchase Request to Accounting</span>
+                      <span>Submit Purchase Request to Admin/Engineer</span>
                     </>
                   )}
                 </button>

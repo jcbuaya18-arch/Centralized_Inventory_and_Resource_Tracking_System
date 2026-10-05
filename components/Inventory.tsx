@@ -33,7 +33,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { handleFirestoreError, OperationType } from "../lib/errors";
 import { compressImageToBase64 } from "../lib/images";
-import { isAwaitingAccountingApproval } from "../lib/requestWorkflow";
+import DepartmentFormsWorkspace, { DepartmentDocType } from "./DepartmentFormsWorkspace";
 
 export const classifyAssetByValue = (cost: number): "PAR" | "ICS" => {
   return (cost || 0) >= 50000 ? "PAR" : "ICS";
@@ -211,6 +211,10 @@ const Inventory: React.FC<InventoryProps> = ({
   const officeTab = officeTabProp !== undefined ? officeTabProp : officeTabState;
   const setOfficeTab = setOfficeTabProp !== undefined ? setOfficeTabProp : setOfficeTabState;
   const [officeAssetSearch, setOfficeAssetSearch] = useState('');
+  // PAR / ICS department workspace, shown on the Accounting & Finance office page
+  const [deptDocType, setDeptDocType] = useState<DepartmentDocType | null>(null);
+  const isAccountingOffice = /accounting/i.test(officeFilter || '');
+  useEffect(() => { setDeptDocType(null); }, [officeFilter]);
   const [activeSubTab, setActiveSubTab] = useState<
     "items" | "receiving" | "requisitions" | "transfers"
   >(initialSubTab);
@@ -322,12 +326,7 @@ const Inventory: React.FC<InventoryProps> = ({
           id: doc.id,
           ...doc.data(),
         })) as AssetRequest[];
-        // Requests still in the Accounting stage are hidden from Engineer/Admin views
-        setAssetRequests(
-          userRole === UserRole.ACCOUNTING
-            ? fetched
-            : fetched.filter((r) => !isAwaitingAccountingApproval(r)),
-        );
+        setAssetRequests(fetched);
       },
       (err) => {
         console.error("Requests Subscriber error:", err);
@@ -335,6 +334,86 @@ const Inventory: React.FC<InventoryProps> = ({
     );
     return () => unsubscribe();
   }, []);
+
+  // Engineer/Admin view & edit of a purchase request on the Receiving & Inspection page
+  const [editingPurchase, setEditingPurchase] = useState<{
+    id: string;
+    datePurchased: string;
+    slipNumber: string;
+    itemArticle: string;
+    office: string;
+    fundingSource: string;
+    amount: number | string;
+    justification: string;
+  } | null>(null);
+  const [savingPurchase, setSavingPurchase] = useState(false);
+
+  const openPurchaseEditor = (requestId: string) => {
+    const raw: any = assetRequests.find((r) => r.id === requestId);
+    if (!raw) return;
+    const quantity = Number(raw.quantity) || 1;
+    const amount = raw.amount ?? (Number(raw.unitCost ?? raw.unitValue) || 0) * quantity;
+    setEditingPurchase({
+      id: raw.id,
+      datePurchased: raw.datePurchased || (raw.requestedAt || "").substring(0, 10),
+      slipNumber: raw.slipNumber || raw.requestNumber || "",
+      itemArticle: raw.itemArticle || raw.title || "",
+      office: raw.targetOffice || raw.office || "",
+      fundingSource: raw.fundingSource || "General Fund",
+      amount,
+      justification: raw.justification || raw.details || "",
+    });
+  };
+
+  const handleSavePurchaseEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPurchase) return;
+    const raw: any = assetRequests.find((r) => r.id === editingPurchase.id);
+    if (!raw) return;
+
+    const amount = Number(editingPurchase.amount) || 0;
+    const quantity = Number(raw.quantity) || 1;
+    const unitCost = amount / quantity;
+    const timestamp = new Date().toISOString();
+
+    setSavingPurchase(true);
+    try {
+      await updateDoc(doc(db, "requests", editingPurchase.id), {
+        datePurchased: editingPurchase.datePurchased,
+        slipNumber: editingPurchase.slipNumber.trim().toUpperCase(),
+        itemArticle: editingPurchase.itemArticle.trim(),
+        targetOffice: editingPurchase.office,
+        fundingSource: editingPurchase.fundingSource.trim(),
+        amount,
+        unitCost,
+        unitValue: unitCost,
+        justification: editingPurchase.justification.trim(),
+        history: [
+          ...(raw.history || []),
+          {
+            id: Math.random().toString(36).substr(2, 9),
+            timestamp,
+            action: "Edited by Engineer/Admin",
+            details: `Purchase request details updated by ${userName} on the Receiving & Inspection page.`,
+          },
+        ],
+      });
+
+      await addDoc(collection(db, "system_logs"), {
+        timestamp,
+        user: userName,
+        action: `Edited purchase request ${editingPurchase.slipNumber || editingPurchase.id} ("${editingPurchase.itemArticle}") before receiving`,
+        module: "Inventory Module",
+      });
+
+      setEditingPurchase(null);
+    } catch (err) {
+      console.error("Failed to update purchase request:", err);
+      alert("Failed to save changes to the purchase request.");
+    } finally {
+      setSavingPurchase(false);
+    }
+  };
 
   const handleLodgeShipment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -641,12 +720,9 @@ const Inventory: React.FC<InventoryProps> = ({
           throw new Error("Shipment has already been received.");
         }
 
-        if (isAwaitingAccountingApproval(reqData)) {
-          throw new Error("This purchase request has not been approved by Accounting yet.");
-        }
-
-        // Validate that shipment is approved or pending delivery
-        const allowedStatuses = ["APPROVED", "PENDING DELIVERY", "PENDING_RECEIVING", "APPROVED FOR DELIVERY", "PENDING", "COMPLETED", "RECEIVED"];
+        // Validate that shipment is approved or pending delivery. The two review statuses come
+        // from the retired Accounting approval step; requests left in them can be received now.
+        const allowedStatuses = ["APPROVED", "PENDING DELIVERY", "PENDING_RECEIVING", "APPROVED FOR DELIVERY", "PENDING", "COMPLETED", "RECEIVED", "PENDING ACCOUNTING REVIEW", "PENDING ENGINEER/ADMIN REVIEW"];
         if (!allowedStatuses.includes(currentStatus) && !hasExistingRegisteredItem) {
           throw new Error(`This shipment cannot be received because its status is: ${reqData.status}`);
         }
@@ -2380,7 +2456,9 @@ const Inventory: React.FC<InventoryProps> = ({
       expectedDeliveryDate: r.expectedDeliveryDate || "",
       deliveryDate: (r as any).deliveryDate || r.requestedAt || "",
       masterAssetId: r.masterAssetId || "",
-      serialNumber: r.serialNumber || ""
+      serialNumber: r.serialNumber || "",
+      fundingSource: (r as any).fundingSource || "",
+      amount: (r as any).amount
     }))
   ];
 
@@ -2534,9 +2612,18 @@ const Inventory: React.FC<InventoryProps> = ({
           </div>
         </div>
 
+        {/* Accounting & Finance: PAR / ICS department workspace */}
+        {isAccountingOffice && !deptDocType && (
+          <div className="max-w-7xl mx-auto mt-6">
+            <DepartmentFormsWorkspace office={officeFilter} items={items} userName={userName} docType={deptDocType} setDocType={setDeptDocType} />
+          </div>
+        )}
+
         {/* Printable Form Content Area */}
         <div className="max-w-7xl mx-auto mt-6 bg-white border border-gray-150 p-6 md:p-12 shadow-sm rounded-[32px] print-area">
-          {(() => {
+          {isAccountingOffice && deptDocType ? (
+            <DepartmentFormsWorkspace office={officeFilter} items={items} userName={userName} docType={deptDocType} setDocType={setDeptDocType} />
+          ) : (() => {
             const activeStockCardItem = filteredOfficeItems.find(item => item.id === selectedStockCardItemId) || filteredOfficeItems[0] || null;
             
             // Local parsing function for ledger entries
@@ -3695,10 +3782,43 @@ const Inventory: React.FC<InventoryProps> = ({
                           </span>
                         </div>
 
+                        {(req as any).isPRS ? (
+                          /* Office Head purchase request: same fields as the Office Head form */
+                          <div className="mt-3 grid grid-cols-2 gap-2 bg-white/60 p-3 rounded-xl border border-emerald-100/30 text-[9px] font-mono leading-relaxed">
+                            <div>
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Date</span>
+                              <span className="text-emerald-900 font-bold">{(req as any).datePurchased || "N/A"}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">PR No.</span>
+                              <span className="text-emerald-900 font-bold">{req.slipNumber || "Not yet assigned"}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Description</span>
+                              <span className="text-emerald-900 font-bold uppercase">{req.itemArticle || "N/A"}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Office</span>
+                              <span className="text-emerald-900 font-bold">{req.office || "N/A"}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Source of Fund</span>
+                              <span className="text-emerald-900 font-bold">{(req as any).fundingSource || "N/A"}</span>
+                            </div>
+                            <div className="col-span-2 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-100 flex items-center justify-between mt-0.5">
+                              <span className="text-gray-500 font-sans font-extrabold uppercase text-[8px] tracking-wider">Amount:</span>
+                              <span className="text-indigo-700 font-black text-xs">₱{Number((req as any).amount ?? (req.unitValue || 0) * (req.quantity || 1)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Remarks</span>
+                              <span className="text-emerald-955 font-bold font-sans">{(req as any).justification || "None"}</span>
+                            </div>
+                          </div>
+                        ) : (
                         <div className="mt-3 grid grid-cols-2 gap-2 bg-white/60 p-3 rounded-xl border border-emerald-100/30 text-[9px] font-mono leading-relaxed">
                           <div>
                             <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Procurement No</span>
-                            <span className="text-emerald-900 font-bold">{req.slipNumber || "N/A"}</span>
+                            <span className="text-emerald-900 font-bold">{req.slipNumber || ((req as any).isPRS ? "Not yet assigned" : "N/A")}</span>
                           </div>
                           <div>
                             <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Office Name</span>
@@ -3749,8 +3869,9 @@ const Inventory: React.FC<InventoryProps> = ({
                             <span className="text-indigo-700 font-black text-xs">₱{Number((req.unitValue || 0) * (req.quantity || 1)).toLocaleString()}</span>
                           </div>
                         </div>
+                        )}
 
-                        {req.mayorRemarks && (
+                        {!(req as any).isPRS && req.mayorRemarks && (
                           <p className="text-[8.5px] text-gray-500 font-medium italic mt-2 leading-relaxed font-sans">
                             Remarks: "{req.mayorRemarks}"
                           </p>
@@ -3760,12 +3881,22 @@ const Inventory: React.FC<InventoryProps> = ({
                         <span className="font-brand font-black text-xs text-emerald-900">
                           ₱{(req.unitValue * req.quantity).toLocaleString()}
                         </span>
-                        <button
-                          onClick={() => setReceivingItem(req as ReceivingRequest)}
-                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-200/50 font-brand cursor-pointer"
-                        >
-                          Receive & Register Items
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {(req as any).isPRS && userRole === UserRole.ADMIN && (
+                            <button
+                              onClick={() => openPurchaseEditor(req.id)}
+                              className="px-3 py-2.5 bg-white hover:bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all font-brand cursor-pointer"
+                            >
+                              View / Edit
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setReceivingItem(req as ReceivingRequest)}
+                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-200/50 font-brand cursor-pointer"
+                          >
+                            Receive & Register Items
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -3775,6 +3906,90 @@ const Inventory: React.FC<InventoryProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Engineer/Admin: view and edit a purchase request before receiving it */}
+              {editingPurchase && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+                  <form
+                    onSubmit={handleSavePurchaseEdit}
+                    className="bg-white rounded-[28px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4 font-brand"
+                  >
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">Purchase Request</h3>
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">View and edit details before receiving</p>
+                      </div>
+                      <button type="button" onClick={() => setEditingPurchase(null)} className="text-slate-400 hover:text-slate-700 text-xl leading-none px-2" aria-label="Close">×</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className="space-y-1.5 block">
+                        <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Date <span className="text-red-500">*</span></span>
+                        <input type="date" required value={editingPurchase.datePurchased}
+                          onChange={e => setEditingPurchase({ ...editingPurchase, datePurchased: e.target.value })}
+                          className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs" />
+                      </label>
+                      <label className="space-y-1.5 block">
+                        <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">PR No.</span>
+                        <input placeholder="Assign PR No., e.g. PR-2026-001" value={editingPurchase.slipNumber}
+                          onChange={e => setEditingPurchase({ ...editingPurchase, slipNumber: e.target.value })}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs uppercase" />
+                      </label>
+                    </div>
+
+                    <label className="space-y-1.5 block">
+                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Description <span className="text-red-500">*</span></span>
+                      <input required value={editingPurchase.itemArticle}
+                        onChange={e => setEditingPurchase({ ...editingPurchase, itemArticle: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs uppercase" />
+                    </label>
+
+                    <label className="space-y-1.5 block">
+                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Office <span className="text-red-500">*</span></span>
+                      <select value={editingPurchase.office}
+                        onChange={e => setEditingPurchase({ ...editingPurchase, office: e.target.value })}
+                        className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs">
+                        {Array.from(new Set([editingPurchase.office, ...offices.map(o => o.name)].filter(Boolean))).map(name => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label className="space-y-1.5 block">
+                        <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Source of Fund</span>
+                        <input value={editingPurchase.fundingSource}
+                          onChange={e => setEditingPurchase({ ...editingPurchase, fundingSource: e.target.value })}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs" />
+                      </label>
+                      <label className="space-y-1.5 block">
+                        <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Amount (₱) <span className="text-red-500">*</span></span>
+                        <input type="number" min={0} step="any" required value={editingPurchase.amount}
+                          onChange={e => setEditingPurchase({ ...editingPurchase, amount: e.target.value })}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs" />
+                      </label>
+                    </div>
+
+                    <label className="space-y-1.5 block">
+                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Remarks</span>
+                      <textarea rows={3} value={editingPurchase.justification}
+                        onChange={e => setEditingPurchase({ ...editingPurchase, justification: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-emerald-500 outline-none rounded-xl font-bold text-xs resize-none" />
+                    </label>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                      <button type="button" onClick={() => setEditingPurchase(null)}
+                        className="px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50">
+                        Cancel
+                      </button>
+                      <button type="submit" disabled={savingPurchase}
+                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-200/50">
+                        {savingPurchase ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
 
             {/* 3. Historical Approved/Declined logs */}

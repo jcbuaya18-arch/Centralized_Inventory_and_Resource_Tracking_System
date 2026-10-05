@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AssetRequest, Office, UserRole } from '../types';
-import { isAwaitingAccountingApproval, requiresAccountingReview } from '../lib/requestWorkflow';
 import { db, auth, logProcurementTransaction } from '../firebase';
 import { logPRSAction } from './auditUtils';
 import { ReceivingTimeline } from './ReceivingTimeline';
@@ -954,9 +953,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           justification: data.justification || data.details || '',
         } as AssetRequest;
       });
-      // Engineer/Admin, Supply and Mayor only see requests Accounting has already approved
-      const hideAccountingStage = userRole === UserRole.ADMIN || userRole === UserRole.SUPPLY || userRole === UserRole.MAYOR;
-      setRequests(hideAccountingStage ? list.filter(r => !isAwaitingAccountingApproval(r)) : list);
+      setRequests(list);
       setLoading(false);
     }, (error) => {
       console.error("Error listening to requests:", error);
@@ -1153,8 +1150,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         });
       }
 
-      // Every request not filed by Admin or Accounting starts in Accounting review
-      const isOfficeHeadReq = requiresAccountingReview(userRole);
+      // Requests filed by anyone other than the Engineer/Admin start as PENDING in the Admin queue
+      const isSubmittedForAdmin = userRole !== UserRole.ADMIN;
 
       if (activeRequestTab === 'REQUISITION' || isSlipRequest) {
         payload = {
@@ -1166,14 +1163,13 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           justification: formJustification,
           office: formOffice,
           originatingOffice: formOffice,
-          recipientOffice: isOfficeHeadReq ? 'Accounting Office' : (isSlipRequest ? 'Accounting Office' : ''),
           requestNumber: formRequestNumber || `${activeRequestTab}-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
           requestedBy: formRequestedBy,
           requestedAt: new Date().toISOString(),
-          status: isOfficeHeadReq ? 'Pending Accounting Review' : formStatus,
+          status: isSubmittedForAdmin ? 'PENDING' : formStatus,
           responseRemarks: formRemarks || '',
-          handledBy: formStatus !== 'PENDING' && !isOfficeHeadReq ? `${userName} (Admin)` : '',
-          handledAt: formStatus !== 'PENDING' && !isOfficeHeadReq ? new Date().toISOString() : ''
+          handledBy: formStatus !== 'PENDING' && !isSubmittedForAdmin ? `${userName} (Admin)` : '',
+          handledAt: formStatus !== 'PENDING' && !isSubmittedForAdmin ? new Date().toISOString() : ''
         };
       } else {
         payload = {
@@ -1188,10 +1184,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           office: formOffice || 'Accounting Department',
           requestedBy: formRequestedBy || 'Accountant',
           requestedAt: new Date().toISOString(),
-          status: isOfficeHeadReq ? 'Pending Accounting Review' : (formStatus === 'REJECTED' || formStatus === 'DECLINED' ? 'REJECTED' : formStatus),
+          status: isSubmittedForAdmin ? 'PENDING' : (formStatus === 'REJECTED' || formStatus === 'DECLINED' ? 'REJECTED' : formStatus),
           responseRemarks: formRemarks || '',
-          handledBy: formStatus !== 'PENDING' && !isOfficeHeadReq ? `${userName} (Admin)` : '',
-          handledAt: formStatus !== 'PENDING' && !isOfficeHeadReq ? new Date().toISOString() : ''
+          handledBy: formStatus !== 'PENDING' && !isSubmittedForAdmin ? `${userName} (Admin)` : '',
+          handledAt: formStatus !== 'PENDING' && !isSubmittedForAdmin ? new Date().toISOString() : ''
         };
       }
 
@@ -1200,9 +1196,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         id: Math.random().toString(36).substr(2, 9),
         timestamp,
         action: 'Submitted',
-        details: isOfficeHeadReq
-          ? `Requisition "${payload.itemArticle}" submitted by ${payload.requestedBy} (${payload.office}). Status is Pending Accounting Review.`
-          : `Request of "${payload.itemArticle}" initially logged by ${payload.requestedBy} (${payload.office}). Status is PENDING review.`
+        details: `Request of "${payload.itemArticle}" initially logged by ${payload.requestedBy} (${payload.office}). Status is PENDING review.`
       }];
       payload.history = initialHistory;
 
@@ -1226,15 +1220,11 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         user: userName
       });
 
-      // Notify recipient (ACCOUNTING for Office Head Requisitions, ADMIN for others)
-      const targetRole = isOfficeHeadReq || payload.requestType === 'PAR' || payload.requestType === 'ICS' ? 'ACCOUNTING' : 'ADMIN';
+      // Notify the Engineer/Admin
       await addDoc(collection(db, 'notifications'), {
-        recipientRole: targetRole,
-        ...(targetRole === 'ACCOUNTING' ? { recipientOffice: 'Accounting Office' } : {}),
-        message: isOfficeHeadReq
-          ? `New Requisition "${payload.itemArticle}" submitted by ${payload.requestedBy} (${payload.office}) for Accounting Review & PAR/ICS Compilation.`
-          : payload.requestType === 'PAR' || payload.requestType === 'ICS'
-            ? `New ${payload.requestType} requesting slip ${payload.requestNumber} from ${payload.office} is ready for Accounting review.`
+        recipientRole: 'ADMIN',
+        message: payload.requestType === 'PAR' || payload.requestType === 'ICS'
+            ? `New ${payload.requestType} requesting slip ${payload.requestNumber} from ${payload.office} is ready for Engineer/Admin review.`
             : `New request "${payload.itemArticle}" is submitted by ${payload.requestedBy} (${payload.office}) for review.`,
         timestamp,
         isRead: false,
@@ -1278,10 +1268,9 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
     try {
       const docRef = doc(db, 'requests', selectedRequest.id);
-      const isAccountingRequisitionEdit = userRole === UserRole.ACCOUNTING && selectedRequest.requestType === 'REQUISITION' && selectedRequest.status === 'Pending Accounting Review';
       const isOfficeHeadResubmission = userRole === UserRole.OFFICE_HEAD && selectedRequest.requestType === 'REQUISITION' && ['Returned for Revision', 'RETURNED_FOR_REVISION'].includes(selectedRequest.status);
       let updates: any = {
-        status: isAccountingRequisitionEdit || isOfficeHeadResubmission ? 'Pending Accounting Review' : formStatus,
+        status: isOfficeHeadResubmission ? 'PENDING' : formStatus,
         responseRemarks: formRemarks || '',
       };
 
@@ -1291,11 +1280,6 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         updates.justification = formJustification;
         updates.office = formOffice;
         updates.requestedBy = formRequestedBy;
-        if (isAccountingRequisitionEdit) {
-          updates.unitValue = Number(formUnitValue || 0);
-          updates.accountingReviewedBy = userName;
-          updates.accountingReviewedAt = new Date().toISOString();
-        }
         updates.requestNumber = formRequestNumber;
         updates.assignedAdmin = formAssignedAdmin;
         updates.attachedDocs = formAttachedDocs;
@@ -1335,10 +1319,6 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       } else if (formStatus !== selectedRequest.status) {
         actionDesc = 'Status Update';
         logDesc = `Request status changed from ${selectedRequest.status} to ${formStatus} by ${userName}. Remarks: "${formRemarks || 'None'}"`;
-      }
-      if (isAccountingRequisitionEdit) {
-        actionDesc = 'Accounting Requisition Edit';
-        logDesc = `Accounting updated requisition details for "${updates.itemArticle}" (quantity ${updates.quantity}, unit value ${updates.unitValue}) by ${userName}.`;
       }
 
       const historyLog = {
@@ -1445,7 +1425,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           if (selectedRequest.linkedParIcsReportId) {
             await updateDoc(doc(db, 'reports', selectedRequest.linkedParIcsReportId), { isSuperseded: true, forwardedStatus: 'Superseded' });
           }
-          await addDoc(collection(db, 'notifications'), { recipientRole: 'ACCOUNTING', recipientOffice: 'Accounting Office', message: `Revised requisition "${updates.itemArticle || selectedRequest.itemArticle}" (${updates.requestNumber || selectedRequest.requestNumber || selectedRequest.id.slice(0, 8)}) has been resubmitted for Accounting review.`, timestamp, isRead: false, type: 'SUBMISSION', reportId: selectedRequest.id });
+          await addDoc(collection(db, 'notifications'), { recipientRole: 'ADMIN', message: `Revised requisition "${updates.itemArticle || selectedRequest.itemArticle}" (${updates.requestNumber || selectedRequest.requestNumber || selectedRequest.id.slice(0, 8)}) has been resubmitted for Engineer/Admin review.`, timestamp, isRead: false, type: 'SUBMISSION', reportId: selectedRequest.id });
         }
 
         // Synchronize with 'reports' collection if linked via reportId
@@ -1474,7 +1454,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       }
 
       await addDoc(collection(db, 'system_logs'), {
-        action: isAccountingRequisitionEdit ? `Accounting edited Office Head requisition ${selectedRequest.id}: ${logDesc}` : `Unified Requests: Updated ${selectedRequest.requestType?.toLowerCase()} request ID ${selectedRequest.id}`,
+        action: `Unified Requests: Updated ${selectedRequest.requestType?.toLowerCase()} request ID ${selectedRequest.id}`,
         module: 'Requests Center',
         timestamp,
         user: userName
@@ -1690,12 +1670,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
       }
     }
 
-    // Dual-document verification check for REQUISITION approval
-    if (req.requestType === 'REQUISITION' && req.status !== 'PENDING' && nextStatus === 'APPROVED') {
-      if (!req.linkedParIcsReportId) {
-        alert("Approval Blocked: Dual-document verification required. This requisition has not been linked to a PAR/ICS report compiled by Accounting.");
-        return;
-      }
+    // If a PAR/ICS report is linked to this requisition, verify it before approval
+    if (req.requestType === 'REQUISITION' && req.linkedParIcsReportId && nextStatus === 'APPROVED') {
       try {
         const linkedReportSnap = await getDoc(doc(db, 'reports', req.linkedParIcsReportId));
         if (!linkedReportSnap.exists()) {
@@ -1705,10 +1681,6 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         const reportData = linkedReportSnap.data();
         if (reportData.originalRequisitionId !== req.id) {
           alert('Approval Blocked: The PAR/ICS report is not linked to this requisition.');
-          return;
-        }
-        if (!((reportData.status === 'Pending Approval' && reportData.forwardedStatus === 'Pending') || reportData.status === 'Approved')) {
-          alert(`Approval Blocked: Linked PAR/ICS report draft has status '${reportData.status}'. Accounting must forward both documents to Engineer/Admin before approval.`);
           return;
         }
       } catch (err) {
@@ -2219,7 +2191,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   )}
 
                   {/* Evaluation Actions form for standard requisitions only. PAR/ICS admin requests are view-only here. */}
-                  {!isAccounting && (req.status === 'PENDING' || (req.requestType === 'REQUISITION' && req.status === 'Pending Engineer/Admin Review')) && (userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
+                  {!isAccounting && (req.status === 'PENDING' || req.status === 'Pending Accounting Review' || (req.requestType === 'REQUISITION' && req.status === 'Pending Engineer/Admin Review')) &&(userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
                     <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Submit Evaluation Decision</span>
                       <input
