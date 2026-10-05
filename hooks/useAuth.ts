@@ -8,7 +8,7 @@ import { KNOWN_ACCOUNTS } from '../lib/accounts';
 const DEFAULT_PERMISSIONS: RolePermissions = {
   [UserRole.ADMIN]: [
     View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS,
-    View.REPORTS, View.TRANSACTIONS, View.AUDIT, View.DATABASE, View.OFFICES, View.PROFILE, View.NOTIFICATIONS
+    View.REPORTS, View.TRANSACTIONS, View.AUDIT, View.OFFICES, View.PROFILE, View.NOTIFICATIONS
   ],
   [UserRole.MAYOR]: [
     View.DASHBOARD, View.ITEMS, View.RECEIVING, View.REQUESTS, View.STICKERS,

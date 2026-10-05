@@ -1418,7 +1418,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
   };
   
   // Accounting-style PR Form states
-  const [prSlipNumber, setPrSlipNumber] = useState('');
+  const [prSlipNumber, setPrSlipNumber] = useState(() => "PR-" + Math.floor(100000 + Math.random() * 900000));
   const [prItemArticle, setPrItemArticle] = useState('');
   const [prCategory, setPrCategory] = useState('Office Equipment');
   const [prCondition, setPrCondition] = useState<'Good' | 'Damaged' | 'Brand New' | 'Fair' | 'Under Repair' | 'Poor' | 'Condemned'>('Good');
@@ -1459,12 +1459,6 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
   // Auto-fill catalog search state
   const [prAssetSearchQuery, setPrAssetSearchQuery] = useState('');
   const [prShowAssetDropdown, setPrShowAssetDropdown] = useState(false);
-
-  useEffect(() => {
-    if (!prSlipNumber) {
-      setPrSlipNumber("PR-" + Math.floor(100000 + Math.random() * 900000));
-    }
-  }, [prSlipNumber]);
 
   useEffect(() => {
     if (prQuantity && prUnitCost !== '') {
@@ -1524,15 +1518,16 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
   // Handle lodging a new asset requisition request (Accounting-Style PR)
   const handleSubmitRequisition = async (e: React.FormEvent) => {
     e.preventDefault();
-    const quantity = Number(prQuantity);
-    if (!prItemArticle.trim() || !prSupplier.trim() || prUnitCost === '' || !prRequestedPerson.trim() || !Number.isInteger(quantity) || quantity < 1) {
-      alert("Please fill in all required fields and enter a valid quantity of at least 1.");
+    // The form asks for one total Amount, so the request is recorded as 1 unit at that amount
+    const quantity = Number(prQuantity) || 1;
+    if (!prDatePurchased || !prSlipNumber.trim() || !prItemArticle.trim() || prUnitCost === '') {
+      alert("Please fill in the Date, PR No., Description, and Amount.");
       return;
     }
 
     setSubmitting(true);
     try {
-      const finalSlipNumber = prSlipNumber || ("PR-" + Math.floor(100000 + Math.random() * 900000));
+      const finalSlipNumber = prSlipNumber.trim().toUpperCase();
       const computedAmount = quantity * Number(prUnitCost || 0);
 
       // Resolve Master Asset record first or create one if missing
@@ -1602,13 +1597,13 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         expirationDate: prExpirationDate || '',
         datePurchased: prDatePurchased || new Date().toISOString().split('T')[0],
         fundingSource: prFundingSource || 'General Fund',
-        requestedBy: prRequestedPerson.trim(),
+        requestedBy: (prRequestedPerson.trim() || userName || 'Office Head'),
         justification: prJustification.trim() || "Purchase Request",
         priority: prPriority,
         status: "Pending Accounting Review",
         office: requestingOffice,
         targetOffice,
-        targetOfficeHead: prRequestedPerson.trim(),
+        targetOfficeHead: (prRequestedPerson.trim() || userName || 'Office Head'),
         preparedBy: userName,
         requestedAt: new Date().toISOString(),
         requestType: 'FINANCIAL'
@@ -2069,14 +2064,53 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
               </div>
 
               <form onSubmit={handleSubmitRequisition} className="space-y-5">
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="text-[8px] font-black uppercase tracking-[0.18em] text-blue-700">Request Destination</span>
-                  <span className="h-px flex-1 bg-slate-200" />
+                {/* 1. Date & 2. PR No. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={prDatePurchased}
+                      onChange={e => setPrDatePurchased(e.target.value)}
+                      className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
+                      PR No. <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      required
+                      placeholder="e.g. PR-2026-001"
+                      value={prSlipNumber}
+                      onChange={e => setPrSlipNumber(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all uppercase"
+                    />
+                  </div>
                 </div>
-                {/* Target Receiving Office Dropdown */}
+
+                {/* 3. Description */}
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                    Target Receiving Office / Department <span className="text-red-500">*</span>
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    placeholder="e.g. Executive Desk, Heavy Duty Laptop, Office Chairs"
+                    value={prItemArticle}
+                    onChange={e => setPrItemArticle(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all uppercase"
+                  />
+                </div>
+
+                {/* 4. Office */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
+                    Office <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={prTargetOffice}
@@ -2089,66 +2123,11 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                   </select>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <span className="text-[8px] font-black uppercase tracking-[0.18em] text-blue-700">Item Details</span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-                {/* 1. Item Name */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                    Item Name / Article <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    required
-                    placeholder="e.g. Executive Desk, Heavy Duty Laptop, Office Chairs"
-                    value={prItemArticle}
-                    onChange={e => setPrItemArticle(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all uppercase"
-                  />
-                </div>
-
-                {/* 2. Equipment Type / Category */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                    Equipment Type / Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={prCategory}
-                    onChange={e => setPrCategory(e.target.value)}
-                    className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                  >
-                    <option value="Office Equipment">Office Equipment</option>
-                    <option value="ICT Equipment">ICT Equipment</option>
-                    <option value="Transportation Equipment">Transportation Equipment</option>
-                    <option value="Construction Materials">Construction Materials</option>
-                    <option value="Machinery & Power Tools">Machinery & Power Tools</option>
-                    <option value="Medical / Health Supplies">Medical / Health Supplies</option>
-                    <option value="Other Equipment">Other Equipment</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <span className="text-[8px] font-black uppercase tracking-[0.18em] text-blue-700">Supplier and Cost</span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-                {/* 4. Supplier & Funding Source */}
+                {/* 5. Source of Fund & 6. Amount */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Supplier / Contractor <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Acme Corp / Premier Supplies"
-                      value={prSupplier}
-                      onChange={e => setPrSupplier(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Funding Source
+                      Source of Fund
                     </label>
                     <input
                       placeholder="e.g. General Fund, SEF, 20% EDF"
@@ -2157,54 +2136,10 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
                     />
                   </div>
-                </div>
-
-                {/* 5. PO Number & Invoice Number */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      PO Number (Optional)
-                    </label>
-                    <input
-                      placeholder="e.g. PO-2026-001"
-                      value={prPoNumber}
-                      onChange={e => setPrPoNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Invoice Number (Optional)
-                    </label>
-                    <input
-                      placeholder="e.g. INV-2026-001"
-                      value={prInvoiceNumber}
-                      onChange={e => setPrInvoiceNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* 6. Quantity & Item Price */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Quantity <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      required
-                      value={prQuantity}
-                      onChange={e => setPrQuantity(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Item Price (₱) <span className="text-red-500">*</span>
+                      Amount (₱) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -2219,80 +2154,14 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                   </div>
                 </div>
 
-                {/* Total Computed Cost Indicator */}
-                <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-xs">
-                  <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Total Cost Calculation</span>
-                  <span className="font-black text-emerald-900 text-sm">
-                    ₱{prAmount !== '' ? Number(prAmount).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <span className="text-[8px] font-black uppercase tracking-[0.18em] text-blue-700">Schedule and Accountability</span>
-                  <span className="h-px flex-1 bg-slate-200" />
-                </div>
-                {/* 7. Purchase, delivery, and item expiry dates */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Date Purchased / Submitted <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={prDatePurchased}
-                      onChange={e => setPrDatePurchased(e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Expected Delivery Date
-                    </label>
-                    <input
-                      type="date"
-                      value={prExpectedDeliveryDate}
-                      onChange={e => setPrExpectedDeliveryDate(e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                      Warranty Expiration
-                    </label>
-                    <input
-                      type="date"
-                      value={prExpirationDate}
-                      onChange={e => setPrExpirationDate(e.target.value)}
-                      className="w-full px-3 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* 8. Office Head Name */}
+                {/* 7. Remarks */}
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                    Office Head Name (Person Requesting / Purchasing Item) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    required
-                    placeholder="e.g. Hon. Maria Santos / Engr. Juan Dela Cruz"
-                    value={prRequestedPerson}
-                    onChange={e => setPrRequestedPerson(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all"
-                  />
-                </div>
-
-                {/* 9. Specification Details / Remarks */}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
-                    Specification Details / Remarks / Justification
+                    Remarks
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Enter technical specifications, justification, or additional remarks..."
+                    placeholder="Enter remarks, specifications, or justification..."
                     value={prJustification}
                     onChange={e => setPrJustification(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all resize-none"
@@ -2314,7 +2183,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                       <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
-                      <span>Submit Purchase Request to Admin/Engineer</span>
+                      <span>Submit Purchase Request to Accounting</span>
                     </>
                   )}
                 </button>

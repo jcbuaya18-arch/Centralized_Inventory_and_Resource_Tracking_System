@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { InventoryItem, Office, AssetRequest, SystemLog, UserProfile, GeneratedReport } from "../types";
+import { isAwaitingAccountingApproval } from "../lib/requestWorkflow";
 import { db, logProcurementTransaction, logPRSAction } from "../firebase";
 import { NotificationBell } from "./NotificationBell";
 import {
@@ -64,6 +65,8 @@ interface AccountingDashboardProps {
   user: UserProfile;
   setView?: (view: any) => void;
   onNotificationActionClick?: (notification: any) => void;
+  /** The shared profile page, rendered in the "My Profile" tab */
+  profilePage?: React.ReactNode;
 }
 
 const COLORS = [
@@ -91,6 +94,7 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
   user,
   setView,
   onNotificationActionClick,
+  profilePage,
 }) => {
   const [activeTab, setActiveTab] = useState<
     | "dashboard"
@@ -99,8 +103,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
     | "reports"
     | "admin_requests"
     | "outgoing_requests"
+    | "office_submissions"
     | "procurement_history"
     | "unified_reports"
+    | "profile"
   >("dashboard");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -110,6 +116,10 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
         setActiveTab('unified_reports');
       } else if (activeTabOverride === 'outgoing_requests' || activeTabOverride === 'outgoing_logs') {
         setActiveTab('outgoing_requests');
+      } else if (activeTabOverride === 'office_submissions') {
+        setActiveTab('office_submissions');
+      } else if (activeTabOverride === 'profile') {
+        setActiveTab('profile');
       } else if (activeTabOverride === 'admin_requests' || activeTabOverride === 'requests') {
         setActiveTab('admin_requests');
       }
@@ -768,6 +778,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
             };
           })
           .filter((d: any) => d.requestType === 'FINANCIAL' || d.amount !== undefined || (!d.itemArticle && d.title))
+          // Only requests Accounting has approved count as outgoing; pending/declined ones stay on the Office Head Purchase Submissions page
+          .filter((d: any) => !isAwaitingAccountingApproval(d))
           .map((d: any) => ({
             id: d.id,
             title: d.itemArticle || d.title || 'Untitled Financial Request',
@@ -791,8 +803,11 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
             approvedBy: d.approvedBy || '',
             rejectedAt: d.rejectedAt || '',
             rejectedBy: d.rejectedBy || '',
-            rejectionReason: d.rejectionReason || d.adminRemarks || ''
-          }));
+            rejectionReason: d.rejectionReason || d.adminRemarks || '',
+            // When the request entered the outgoing log: Accounting approval time, else submission time
+            loggedAt: d.accountingReviewedAt || d.requestedAt || ''
+          }))
+          .sort((a: any, b: any) => String(b.loggedAt).localeCompare(String(a.loggedAt)));
         setActRequests(fetched);
         setLoadingActReqs(false);
       },
@@ -2668,9 +2683,21 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               count: actRequests.length,
             },
             {
+              id: "office_submissions",
+              label: "Office Head Purchase Submissions",
+              icon: "M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4",
+              count: assetRequests.filter(r => r.status === 'Pending Accounting Review').length,
+              warning: assetRequests.some(r => r.status === 'Pending Accounting Review'),
+            },
+            {
               id: "procurement_history",
               label: "Procurement History",
               icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+            },
+            {
+              id: "profile",
+              label: "My Profile",
+              icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
             },
           ] as Array<{ id: string; label: string; icon: string; count?: number; warning?: boolean }>).map((tab) => (
             <button
@@ -4839,24 +4866,23 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                   </div>
                 </div>
               </div>
-            ) : activeTab === "outgoing_requests" ? (
+            ) : activeTab === "office_submissions" ? (
               <div className="space-y-6 animate-in">
                 {/* Banner */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase font-brand tracking-tight">
-                      Outgoing Request Logs
+                      Office Head Purchase Submissions
                     </h2>
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                      Track and audit all procurement request slips sent to Admin &amp; Engineering. Monitor delivery status, approvals, and returns.
+                      Review, edit, approve, or return purchase forms submitted by Office Heads before they go to Admin &amp; Engineering.
                     </p>
                   </div>
                   <button
-                    onClick={() => setActiveTab('admin_requests')}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95 shrink-0 self-start sm:self-center cursor-pointer font-brand"
+                    onClick={() => setActiveTab("outgoing_requests")}
+                    className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-center cursor-pointer font-brand"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                    <span>New Purchase Request</span>
+                    <span>View Outgoing Request Logs</span>
                   </button>
                 </div>
 
@@ -5200,6 +5226,27 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
                     )}
                   </div>
                 </section>
+              </div>
+            ) : activeTab === "outgoing_requests" ? (
+              <div className="space-y-6 animate-in">
+                {/* Banner */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-black text-slate-900 uppercase font-brand tracking-tight">
+                      Outgoing Request Logs
+                    </h2>
+                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                      Track and audit all procurement request slips sent to Admin &amp; Engineering. Monitor delivery status, approvals, and returns.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('admin_requests')}
+                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95 shrink-0 self-start sm:self-center cursor-pointer font-brand"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    <span>New Purchase Request</span>
+                  </button>
+                </div>
 
                 <div className="space-y-4">
                   {(() => {
@@ -5593,6 +5640,8 @@ const AccountingDashboard: React.FC<AccountingDashboardProps> = ({
               />
             ) : activeTab === "procurement_history" ? (
               <ProcurementTransactionHistory />
+            ) : activeTab === "profile" ? (
+              profilePage ?? null
             ) : null}
 
             {/* Read-Only Stock Card Transaction Ledger Modal */}

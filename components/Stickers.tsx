@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { InventoryItem, UserRole } from '../types';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
-import { QRCodeSVG } from 'qrcode.react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface StickersProps {
@@ -16,6 +15,67 @@ interface StickerConfig {
   accountableName: string;
   accountablePosition: string;
 }
+
+/**
+ * Prints only the property stickers inside `containerId` (not the rest of the app page)
+ * by copying them into a hidden iframe that carries the app's stylesheets.
+ */
+const printStickersOnly = (containerId: string) => {
+  const container = document.getElementById(containerId);
+  const stickers = container ? Array.from(container.querySelectorAll('.pis-sticker')) : [];
+  if (stickers.length === 0) {
+    alert('No property stickers to print.');
+    return;
+  }
+
+  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+    .map(node => node.outerHTML)
+    .join('\n');
+  const columns = stickers.length > 1 ? 2 : 1;
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+  document.body.appendChild(iframe);
+
+  const printDoc = iframe.contentDocument;
+  const printWin = iframe.contentWindow;
+  if (!printDoc || !printWin) {
+    iframe.remove();
+    return;
+  }
+
+  printDoc.open();
+  printDoc.write(`<!doctype html><html><head><meta charset="utf-8">
+<base href="${window.location.origin}/">
+<title>Property Inventory Stickers</title>
+${styles}
+<style>
+  @page { size: landscape; margin: 10mm; }
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .pis-print-sheet {
+    display: grid !important;
+    grid-template-columns: repeat(${columns}, 120mm);
+    justify-content: center;
+    gap: 8mm;
+  }
+  .pis-print-sheet .pis-sticker { width: 120mm !important; max-width: none !important; margin: 0 !important; }
+</style>
+</head><body><div class="pis-print-sheet">${stickers.map(s => s.outerHTML).join('')}</div></body></html>`);
+  printDoc.close();
+
+  const cleanup = () => setTimeout(() => iframe.remove(), 500);
+  const images = Array.from(printDoc.images);
+  const imagesReady = Promise.all(images.map(img => img.complete
+    ? Promise.resolve()
+    : new Promise<void>(resolve => { img.onload = () => resolve(); img.onerror = () => resolve(); })));
+
+  imagesReady.then(() => {
+    printWin.focus();
+    printWin.print();
+    cleanup();
+  });
+};
 
 const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdateItem }) => {
   const [activeTab, setActiveTab] = useState<'stickers' | 'scanner' | 'backfill'>('stickers');
@@ -83,7 +143,7 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
     } catch (e) {
       console.error("Log error:", e);
     }
-    window.print();
+    printStickersOnly('sticker-sheet');
   };
 
   const handlePrintSelected = async () => {
@@ -100,7 +160,7 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
         console.error("Log error:", e);
       }
     }
-    window.print();
+    printStickersOnly('sticker-sheet');
   };
 
   // QR Scanner States
@@ -156,53 +216,7 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
         console.error("Log error:", e);
       }
     }
-    window.print();
-  };
-
-  const handleDownloadQR = (item: InventoryItem) => {
-    const svgElement = document.getElementById(`qr-svg-${item.id}`) as unknown as SVGElement | null;
-    if (!svgElement) {
-      alert("Could not load QR code graphic element on screen. Please ensure the QR is generated and displayed on preview.");
-      return;
-    }
-
-    try {
-      const svgString = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const URLObj = window.URL || (window as any).webkitURL;
-      const blobURL = URLObj.createObjectURL(svgBlob);
-      const image = new Image();
-      
-      image.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const context = canvas.getContext('2d');
-        if (context) {
-          context.fillStyle = '#FFFFFF';
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          context.drawImage(image, 0, 0, canvas.width, canvas.height);
-          
-          const pngURL = canvas.toDataURL('image/png');
-          const downloadLink = document.createElement('a');
-          downloadLink.href = pngURL;
-          downloadLink.download = `LGU_TIBIAO_QR_${item.propertyNumber}.png`;
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-          document.body.removeChild(downloadLink);
-        }
-        URLObj.revokeObjectURL(blobURL);
-      };
-      
-      image.src = blobURL;
-    } catch (err) {
-      console.error("QR Code Download Error:", err);
-      alert("Export failed. Please try again.");
-    }
-  };
-
-  const getQRValue = (item: InventoryItem) => {
-    return item.propertyNumber || item.id;
+    printStickersOnly('sticker-preview');
   };
 
   const parseScannedResult = (decodedText: string) => {
@@ -585,64 +599,49 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
   const StickerContent: React.FC<{ item?: InventoryItem; isFullSize?: boolean }> = ({ item, isFullSize = false }) => {
     const targetItem = item || selectedItem;
     if (!targetItem) return null;
+    const orNA = (value?: string | number | null) => {
+      const text = String(value ?? '').trim();
+      return text || 'N/A';
+    };
+    // Only the acquisition year is shown, e.g. "2022"
+    const acquisitionSource = String(targetItem.acquisitionDate || targetItem.dateReceived || targetItem.yearPurchased || '');
+    const acquisitionDateCost = acquisitionSource.match(/\d{4}/)?.[0] || '';
+
+    const rows: Array<[string, string]> = [
+      ['Property Number', orNA(targetItem.propertyNumber)],
+      ['Item', orNA(targetItem.article)],
+      ['Description', orNA(targetItem.description)],
+      ['Model Number', orNA(targetItem.modelNumber)],
+      ['Serial Number', orNA(targetItem.serialNumber)],
+      ['Acquisition Date Cost', orNA(acquisitionDateCost)],
+      ['Person Accountable', orNA(targetItem.personAccountable)],
+    ];
+
     return (
-      <div className={`sticker-tag bg-white p-6 md:p-8 border-[6px] border-black text-black relative ${isFullSize ? 'sticker-tag-full' : ''} font-serif`}>
-        {/* Header */}
-        <div className="border-b-4 border-black pb-4 mb-4 flex items-center space-x-4">
-          <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
-            <img 
-              src="/tibiaoLogo.jpg" 
-              alt="Tibiao Seal" 
-              className="w-12 h-12 object-contain"
-              referrerPolicy="no-referrer"
-            />
+      <div className={`pis-sticker ${isFullSize ? 'pis-sticker-full' : ''}`}>
+        <div className="pis-frame">
+          {/* Seal panel */}
+          <div className="pis-seal">
+            <img src="/tibiaoLogo.jpg" alt="Official Seal of the Municipality of Tibiao" referrerPolicy="no-referrer" />
+            <p>Republic of the Philippines</p>
+            <p>Province of Antique</p>
+            <p>Municipality of Tibiao</p>
           </div>
-          <div className="text-center flex-1">
-            <p className="text-[8px] font-black uppercase tracking-tight leading-none mb-0.5">Republic of the Philippines</p>
-            <p className="text-[10px] font-black uppercase tracking-tighter leading-none mb-0.5">Province of Antique</p>
-            <p className="text-[9px] font-black uppercase tracking-tight leading-none mb-2">Municipality of Tibiao</p>
-            <p className="text-[12px] font-black uppercase mt-1 border-t-2 border-black pt-1 tracking-widest text-[13px]">Official Property Tag</p>
-          </div>
-        </div>
 
-        {/* Form table */}
-        <div className="space-y-2 text-[11px] leading-relaxed">
-          <div className="flex border-b border-black/40 py-1">
-            <span className="font-bold w-32 uppercase text-[9px] text-gray-500">Property Number</span>
-            <span className="flex-1 font-mono font-black">{targetItem.propertyNumber}</span>
+          {/* Labeled fields */}
+          <div className="pis-fields">
+            <div className="pis-title">Property Inventory Sticker</div>
+            {rows.map(([label, value]) => (
+              <div key={label} className="pis-row">
+                <span className="pis-label">{label}:</span>
+                <span className="pis-value">{value}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex border-b border-black/40 py-1">
-            <span className="font-bold w-32 uppercase text-[9px] text-gray-500">Asset Description</span>
-            <span className="flex-1 uppercase font-black truncate">{targetItem.article}</span>
-          </div>
-          <div className="flex border-b border-black/40 py-1">
-            <span className="font-bold w-32 uppercase text-[9px] text-gray-500">Classification</span>
-            <span className="flex-1 uppercase font-bold">{targetItem.category}</span>
-          </div>
-          <div className="flex border-b border-black/40 py-1">
-            <span className="font-bold w-32 uppercase text-[9px] text-gray-500">Acquisition Cost</span>
-            <span className="flex-1 font-black">₱ {targetItem.unitValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div className="flex border-b-2 border-black py-1.5 mt-1.5">
-            <span className="font-bold w-32 uppercase text-[9px] text-gray-500">Responsible Officer</span>
-            <div className="flex-1">
-              <p className="font-black underline uppercase text-xs leading-none">{targetItem.personAccountable}</p>
-              <p className="text-[8px] font-bold uppercase mt-1 text-gray-400">Accountable Officer</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Footer Area with real dynamic QR */}
-        <div className="mt-5 flex justify-between items-end border-t border-black/20 pt-4">
-          <div className="w-24 h-24 p-1 border-2 border-black bg-white flex items-center justify-center">
-            <QRCodeSVG 
-              id={`qr-svg-${targetItem.id}`}
-              value={getQRValue(targetItem)}
-              size={80}
-              level="M"
-              includeMargin={false}
-            />
-          </div>
+          {/* Blank boxes for the signature/date and notes, filled in by hand */}
+          <div className="pis-signature" />
+          <div className="pis-note" />
         </div>
       </div>
     );
@@ -655,27 +654,6 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
         <div>
           <h2 className="text-xl md:text-2xl font-black text-gray-900 font-brand uppercase tracking-tight">QR Tag & Tracker Center</h2>
           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Immutably bind physical assets to government compliance records</p>
-        </div>
-
-        <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 self-start md:self-auto">
-          <button
-            onClick={() => setActiveTab('stickers')}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'stickers' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-blue-600'}`}
-          >
-            Sticker Studio
-          </button>
-          <button
-            onClick={() => setActiveTab('scanner')}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'scanner' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-blue-600'}`}
-          >
-            QR Scan Terminal
-          </button>
-          <button
-            onClick={() => setActiveTab('backfill')}
-            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'backfill' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:text-blue-600'}`}
-          >
-            Sticker Diagnostic & Backfill
-          </button>
         </div>
       </div>
 
@@ -891,16 +869,6 @@ const Stickers: React.FC<StickersProps> = ({ items, userRole, userName, onUpdate
                     className="bg-white text-gray-900 border-2 border-gray-200 px-10 py-3 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center space-x-3 shadow-xl hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
                   >
                     <span>Full Sticker View</span>
-                  </button>
-
-                  <button 
-                    onClick={() => handleDownloadQR(selectedItem)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center space-x-3 shadow-xl transition-all active:scale-95 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    <span>Download QR Image</span>
                   </button>
 
                   <button 

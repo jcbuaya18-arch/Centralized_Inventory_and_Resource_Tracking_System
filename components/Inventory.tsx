@@ -33,6 +33,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { handleFirestoreError, OperationType } from "../lib/errors";
 import { compressImageToBase64 } from "../lib/images";
+import { isAwaitingAccountingApproval } from "../lib/requestWorkflow";
 
 export const classifyAssetByValue = (cost: number): "PAR" | "ICS" => {
   return (cost || 0) >= 50000 ? "PAR" : "ICS";
@@ -321,7 +322,12 @@ const Inventory: React.FC<InventoryProps> = ({
           id: doc.id,
           ...doc.data(),
         })) as AssetRequest[];
-        setAssetRequests(fetched);
+        // Requests still in the Accounting stage are hidden from Engineer/Admin views
+        setAssetRequests(
+          userRole === UserRole.ACCOUNTING
+            ? fetched
+            : fetched.filter((r) => !isAwaitingAccountingApproval(r)),
+        );
       },
       (err) => {
         console.error("Requests Subscriber error:", err);
@@ -633,6 +639,10 @@ const Inventory: React.FC<InventoryProps> = ({
         // but still block a true duplicate receive when the request is already processed and no item exists.
         if ((currentStatus === 'COMPLETED' || currentStatus === 'RECEIVED') && !hasExistingRegisteredItem) {
           throw new Error("Shipment has already been received.");
+        }
+
+        if (isAwaitingAccountingApproval(reqData)) {
+          throw new Error("This purchase request has not been approved by Accounting yet.");
         }
 
         // Validate that shipment is approved or pending delivery

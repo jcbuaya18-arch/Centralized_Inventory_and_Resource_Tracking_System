@@ -93,6 +93,18 @@ const App: React.FC = () => {
     }
   };
 
+  // ── Profile page (shared by the sidebar layout and the Accounting dashboard) ──
+  const profilePage = (
+    <Profile
+      profile={userProfile} setProfile={setUserProfile}
+      systemLogs={systemLogs} accessLogs={accessLogs}
+      settings={settings} setSettings={setSettings}
+      onLogout={handleLogout}
+      notificationPermission={notificationPermission}
+      onRequestPermission={requestNotificationPermission}
+    />
+  );
+
   // ── Content Renderer ──
   const renderContent = () => {
     if (isLoading) return (
@@ -193,6 +205,10 @@ const App: React.FC = () => {
           />
         );
       case View.DATABASE:
+        // Data Administration is hidden from the menu; also block direct visits to /database
+        if (!rolePermissions[userProfile.role]?.includes(View.DATABASE)) {
+          return <Dashboard items={items} offices={offices} setView={setCurrentView} userRole={userProfile.role} onSeedDemo={() => {}} userName={userProfile.fullName} onCheckWarranties={async () => 0} onNotificationActionClick={handleNotificationActionClick} />;
+        }
         return <CloudLedger />;
       case View.OFFICES:
         if (officeFilter) {
@@ -209,16 +225,7 @@ const App: React.FC = () => {
         }
         return <Offices offices={offices} setOffices={setOffices} setView={setCurrentView} setOfficeFilter={setOfficeFilter} userRole={userProfile.role} onAddOffice={async (o: Partial<Office>) => { await addDoc(collection(db, 'offices'), o); addSystemLog(`New Office Registered: ${o.name}`, 'Offices'); }} onRemoveOffice={async (id: string) => { await deleteDoc(doc(db, 'offices', id)); addSystemLog('Office Record Removed', 'Offices'); }} onUpdateOffice={async (id: string, updates: Partial<Office>) => { await updateDoc(doc(db, 'offices', id), updates); addSystemLog(`Office Updated: ${updates.name || id}`, 'Offices'); }} officeTab={officeTab} setOfficeTab={setOfficeTab} />;
       case View.PROFILE:
-        return (
-          <Profile
-            profile={userProfile} setProfile={setUserProfile}
-            systemLogs={systemLogs} accessLogs={accessLogs}
-            settings={settings} setSettings={setSettings}
-            onLogout={handleLogout}
-            notificationPermission={notificationPermission}
-            onRequestPermission={requestNotificationPermission}
-          />
-        );
+        return profilePage;
       default:
         return <Dashboard items={items} offices={offices} setView={setCurrentView} userRole={userProfile.role} onSeedDemo={() => {}} userName={userProfile.fullName} onCheckWarranties={async () => 0} onNotificationActionClick={handleNotificationActionClick} />;
     }
@@ -264,6 +271,7 @@ const App: React.FC = () => {
           onResetOverride={() => setDashboardActiveTabOverride(null)}
           user={userProfile} setView={setCurrentView}
           onNotificationActionClick={handleNotificationActionClick}
+          profilePage={profilePage}
         />
       );
     }

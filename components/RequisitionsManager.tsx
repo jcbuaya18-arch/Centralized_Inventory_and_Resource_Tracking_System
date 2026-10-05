@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AssetRequest, Office, UserRole } from '../types';
+import { isAwaitingAccountingApproval, requiresAccountingReview } from '../lib/requestWorkflow';
 import { db, auth, logProcurementTransaction } from '../firebase';
 import { logPRSAction } from './auditUtils';
 import { ReceivingTimeline } from './ReceivingTimeline';
@@ -953,7 +954,9 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           justification: data.justification || data.details || '',
         } as AssetRequest;
       });
-      setRequests(list);
+      // Engineer/Admin, Supply and Mayor only see requests Accounting has already approved
+      const hideAccountingStage = userRole === UserRole.ADMIN || userRole === UserRole.SUPPLY || userRole === UserRole.MAYOR;
+      setRequests(hideAccountingStage ? list.filter(r => !isAwaitingAccountingApproval(r)) : list);
       setLoading(false);
     }, (error) => {
       console.error("Error listening to requests:", error);
@@ -1150,7 +1153,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         });
       }
 
-      const isOfficeHeadReq = userRole === UserRole.OFFICE_HEAD && activeRequestTab === 'REQUISITION';
+      // Every request not filed by Admin or Accounting starts in Accounting review
+      const isOfficeHeadReq = requiresAccountingReview(userRole);
 
       if (activeRequestTab === 'REQUISITION' || isSlipRequest) {
         payload = {
@@ -1184,10 +1188,10 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
           office: formOffice || 'Accounting Department',
           requestedBy: formRequestedBy || 'Accountant',
           requestedAt: new Date().toISOString(),
-          status: formStatus === 'REJECTED' || formStatus === 'DECLINED' ? 'REJECTED' : formStatus,
+          status: isOfficeHeadReq ? 'Pending Accounting Review' : (formStatus === 'REJECTED' || formStatus === 'DECLINED' ? 'REJECTED' : formStatus),
           responseRemarks: formRemarks || '',
-          handledBy: formStatus !== 'PENDING' ? `${userName} (Admin)` : '',
-          handledAt: formStatus !== 'PENDING' ? new Date().toISOString() : ''
+          handledBy: formStatus !== 'PENDING' && !isOfficeHeadReq ? `${userName} (Admin)` : '',
+          handledAt: formStatus !== 'PENDING' && !isOfficeHeadReq ? new Date().toISOString() : ''
         };
       }
 

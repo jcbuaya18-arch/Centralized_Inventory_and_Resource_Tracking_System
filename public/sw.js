@@ -1,5 +1,5 @@
 // Centralized Inventory and Resource Tracking System of LGU Tibiao Service Worker
-const CACHE_NAME = 'lgu-tibiao-inventory-v2';
+const CACHE_NAME = 'lgu-tibiao-inventory-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -183,22 +183,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-first: always serve the latest app code when online, fall back to cache offline
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      }).catch((err) => {
-        console.warn('[Service Worker] Offline fetch fallback:', err);
-        return cachedResponse;
-      });
-
-      return cachedResponse || fetchPromise;
+    fetch(event.request).then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+      }
+      return networkResponse;
+    }).catch((err) => {
+      console.warn('[Service Worker] Offline fetch fallback:', err);
+      return caches.match(event.request);
     })
   );
 });
