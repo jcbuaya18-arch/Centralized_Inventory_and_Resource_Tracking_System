@@ -157,9 +157,9 @@ const App: React.FC = () => {
       case View.DASHBOARD:
         return <Dashboard items={items} offices={offices} setView={setCurrentView} userRole={userProfile.role} onSeedDemo={() => {}} userName={userProfile.fullName} onCheckWarranties={async () => 0} onNotificationActionClick={handleNotificationActionClick} />;
       case View.ITEMS:
-        return <Inventory items={items} setItems={setItems} offices={offices} officeFilter={officeFilter} setOfficeFilter={setOfficeFilter} userRole={userProfile.role} onAddItem={handleAddItem} onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem} userName={userProfile.fullName} userOffice={userProfile.office} officeTab={officeTab} setOfficeTab={setOfficeTab} />;
+        return <Inventory items={items} setItems={setItems} offices={offices} officeFilter={officeFilter} setOfficeFilter={setOfficeFilter} userRole={userProfile.role} onAddItem={handleAddItem} onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem} userName={userProfile.fullName} userOffice={userProfile.office} userPosition={userProfile.position} officeTab={officeTab} setOfficeTab={setOfficeTab} />;
       case View.RECEIVING:
-        return <Inventory items={items} setItems={setItems} offices={offices} officeFilter={officeFilter} setOfficeFilter={setOfficeFilter} userRole={userProfile.role} onAddItem={handleAddItem} onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem} userName={userProfile.fullName} userOffice={userProfile.office} initialSubTab="receiving" officeTab={officeTab} setOfficeTab={setOfficeTab} />;
+        return <Inventory items={items} setItems={setItems} offices={offices} officeFilter={officeFilter} setOfficeFilter={setOfficeFilter} userRole={userProfile.role} onAddItem={handleAddItem} onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem} userName={userProfile.fullName} userOffice={userProfile.office} userPosition={userProfile.position} initialSubTab="receiving" officeTab={officeTab} setOfficeTab={setOfficeTab} />;
       case View.STICKERS:
         return <Stickers items={items} userRole={userProfile.role} userName={userProfile.fullName} onUpdateItem={handleUpdateItem} />;
       case View.REPORTS:
@@ -218,6 +218,7 @@ const App: React.FC = () => {
               userRole={userProfile.role} onAddItem={handleAddItem}
               onRemoveItem={handleRemoveItem} onUpdateItem={handleUpdateItem}
               userName={userProfile.fullName} userOffice={userProfile.office}
+              userPosition={userProfile.position}
               officeTab={officeTab} setOfficeTab={setOfficeTab}
             />
           );

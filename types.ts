@@ -307,7 +307,7 @@ export interface AssetRequest {
   accountingReviewedAt?: string;
 
   // Unified Request Fields
-  requestType?: 'REQUISITION' | 'FINANCIAL' | 'PAR' | 'ICS';
+  requestType?: 'REQUISITION' | 'FINANCIAL' | 'PAR' | 'ICS' | 'AIR' | 'RIS';
   priority?: 'Low' | 'Medium' | 'High';
   amount?: number;
   adminRemarks?: string;

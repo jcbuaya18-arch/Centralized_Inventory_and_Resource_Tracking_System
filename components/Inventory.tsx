@@ -29,6 +29,7 @@ import {
   updateDoc,
   runTransaction,
   getDocs,
+  where,
 } from "firebase/firestore";
 import { QRCodeSVG } from "qrcode.react";
 import { handleFirestoreError, OperationType } from "../lib/errors";
@@ -51,6 +52,7 @@ interface InventoryProps {
   onUpdateItem: (id: string, updates: Partial<InventoryItem>) => Promise<void>;
   userName: string;
   userOffice?: string;
+  userPosition?: string;
   initialSubTab?: "items" | "receiving" | "requisitions" | "transfers";
   officeTab?: "stock_card" | "par" | "ics";
   setOfficeTab?: (tab: "stock_card" | "par" | "ics") => void;
@@ -202,6 +204,7 @@ const Inventory: React.FC<InventoryProps> = ({
   onUpdateItem,
   userName,
   userOffice,
+  userPosition,
   initialSubTab = "items",
   officeTab: officeTabProp,
   setOfficeTab: setOfficeTabProp,
@@ -289,7 +292,7 @@ const Inventory: React.FC<InventoryProps> = ({
         "Assessor's Office": "Atty. Clara Maria",
       };
       const officeName = receivingItem.office || (receivingItem as any).targetOffice || "";
-      const defaultCustodian = (receivingItem as any).requestedBy || (receivingItem as any).targetOfficeHead || (receivingItem as any).officeHead || officeHeadMap[officeName] || "Office Head";
+      const defaultCustodian = (receivingItem as any).personAccountable || (receivingItem as any).requestedBy || (receivingItem as any).targetOfficeHead || (receivingItem as any).officeHead || officeHeadMap[officeName] || "Office Head";
       setReceivingCustodian(defaultCustodian);
     } else {
       setReceivingCustodian("");
@@ -613,36 +616,29 @@ const Inventory: React.FC<InventoryProps> = ({
       const existingRpcppes = rpcppeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
       
       const isAsset = unitCost >= 50000;
-      
-      const matchedRpcppeReport = existingReports.find(r => 
-        (r.reportMode === 'appendix73') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
 
-      const matchedParReport = existingReports.find(r => 
-        (r.reportMode === 'par') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
+      // Purchase requests for the same office received on the same (local) day share the same
+      // Office Reports (one row per purchase request) and the same Procurement Request Slips documents
+      const groupDate = new Date().toLocaleDateString('en-CA');
+      const groupKeyFor = (formType: string) => `${formType}|${normalizedTargetOffice}|${groupDate}`;
+      const findOfficeReport = (mode: string) =>
+        existingReports.find(r => r.reportMode === mode && r.receivingGroupKey === groupKeyFor(mode)) ||
+        existingReports.find(r =>
+          r.reportMode === mode && !r.receivingGroupKey &&
+          (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
+        );
 
-      const matchedIcsReport = existingReports.find(r => 
-        (r.reportMode === 'ics') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
+      const matchedRpcppeReport = findOfficeReport('appendix73');
 
-      const matchedRrspReport = existingReports.find(r => 
-        (r.reportMode === 'rrsp') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
+      const matchedParReport = findOfficeReport('par');
 
-      const matchedSpcReport = existingReports.find(r => 
-        (r.reportMode === 'spc') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
+      const matchedIcsReport = findOfficeReport('ics');
 
-      const matchedSplcReport = existingReports.find(r => 
-        (r.reportMode === 'splc') && 
-        (r.prsNumber === prsNumber || r.id === request.id || r.prsNumber === request.id)
-      );
+      const matchedRrspReport = findOfficeReport('rrsp');
+
+      const matchedSpcReport = findOfficeReport('spc');
+
+      const matchedSplcReport = findOfficeReport('splc');
 
       const associatedFormType = isAsset ? 'PAR' : 'ICS';
       const associatedFormNo = isAsset 
@@ -651,6 +647,17 @@ const Inventory: React.FC<InventoryProps> = ({
       const associatedFormId = isAsset
         ? (matchedParReport ? matchedParReport.id : '')
         : (matchedIcsReport ? matchedIcsReport.id : '');
+
+      // PAR/ICS slip auto-generated when this purchase request was submitted, if any
+      const linkedSlipSnap = await getDocs(query(collection(db, 'requests'), where('originalRequisitionId', '==', request.id)));
+      const linkedSlipDoc = linkedSlipSnap.docs.find(d => ['PAR', 'ICS'].includes(String(d.data().requestType || '').toUpperCase()));
+      const linkedSlipRequest = linkedSlipDoc ? { id: linkedSlipDoc.id, ...linkedSlipDoc.data() } as any : null;
+
+      // Purchase requests for the same office received on the same (local) day share one PAR/ICS, AIR and RIS
+      const groupKeys = [groupKeyFor(associatedFormType), groupKeyFor('AIR'), groupKeyFor('RIS')];
+      const groupSnap = await getDocs(query(collection(db, 'requests'), where('receivingGroupKey', 'in', groupKeys)));
+      const groupDocIds: Record<string, string> = {};
+      groupSnap.docs.forEach(d => { groupDocIds[d.data().receivingGroupKey] = d.id; });
 
       let registeredPropNo = "";
 
@@ -703,6 +710,16 @@ const Inventory: React.FC<InventoryProps> = ({
               reportSnapsMap[rObj.id] = rSnap.data();
             }
           }
+        }
+
+        // Today's grouped PAR/ICS, AIR and RIS for this office, if they already exist
+        const groupDocs: Record<string, { ref: any; data: any } | null> = {};
+        for (const key of groupKeys) {
+          const id = groupDocIds[key];
+          if (!id) { groupDocs[key] = null; continue; }
+          const ref = doc(db, 'requests', id);
+          const snap = await transaction.get(ref);
+          groupDocs[key] = snap.exists() ? { ref, data: snap.data() } : null;
         }
 
         // === 2. VALIDATION ===
@@ -968,16 +985,24 @@ const Inventory: React.FC<InventoryProps> = ({
             const finalReportData = freshReportData || matchedReportObj;
             reportDocRef = doc(db, 'reports', matchedReportObj.id);
             const currentItems = finalReportData.items_snapshot || [];
-            const existingItemIndex = currentItems.findIndex((i: any) => i.article === itemTitle.toUpperCase());
+            // One row per purchase request; receiving the same request again refreshes its row
+            const existingItemIndex = currentItems.findIndex((i: any) => i.requestId === request.id);
             let updatedItems = [...currentItems];
             if (existingItemIndex > -1) {
-              updatedItems[existingItemIndex].qtyPropertyCard = (updatedItems[existingItemIndex].qtyPropertyCard || 0) + qty;
-              updatedItems[existingItemIndex].qtyPhysicalCount = (updatedItems[existingItemIndex].qtyPhysicalCount || 0) + qty;
-              updatedItems[existingItemIndex].remarks = `Auto-updated on receiving cargo under PRS ${prsNumber}`;
-              updatedItems[existingItemIndex].masterAssetId = masterAssetId;
+              updatedItems[existingItemIndex] = {
+                ...updatedItems[existingItemIndex],
+                qtyPropertyCard: qty,
+                qtyPhysicalCount: qty,
+                unitValue: unitCost,
+                propertyNumber: officeRes.propNo,
+                remarks: `Auto-updated on receiving cargo under PRS ${prsNumber}`,
+                masterAssetId,
+              };
             } else {
               updatedItems.push({
                 tempId: Math.random().toString(36).substr(2, 9),
+                requestId: request.id,
+                datePurchased: request.datePurchased || '',
                 masterAssetId,
                 article: itemTitle.toUpperCase(),
                 description: request.description || request.justification || request.details || `Received via PRS ${prsNumber}`,
@@ -1041,6 +1066,8 @@ const Inventory: React.FC<InventoryProps> = ({
               items_snapshot: [
                 {
                   tempId: Math.random().toString(36).substr(2, 9),
+                  requestId: request.id,
+                  datePurchased: request.datePurchased || '',
                   masterAssetId,
                   article: itemTitle.toUpperCase(),
                   description: request.description || request.justification || request.details || `Received via PRS ${prsNumber}`,
@@ -1065,6 +1092,8 @@ const Inventory: React.FC<InventoryProps> = ({
               ],
               reportMode: mode,
               prsNumber: prsNumber,
+              receivingGroupKey: groupKeyFor(mode),
+              receivingOffice: targetOfficeName,
               created_at: timestamp
             };
 
@@ -1091,6 +1120,7 @@ const Inventory: React.FC<InventoryProps> = ({
 
             transaction.set(reportDocRef, reportPayload);
           }
+          return reportDocRef.id;
         };
 
         // --- Revision 3: Automatic RPCPPE & Master Asset Update ---
@@ -1140,13 +1170,148 @@ const Inventory: React.FC<InventoryProps> = ({
         await handleReportUpdateInTxn('appendix73', 'PROPERTY, PLANT AND EQUIPMENT', matchedRpcppeReport, isAsset ? 'PAR' : 'ICS');
 
         // 2. Office Reports (PAR or ICS based on asset threshold)
-        if (isAsset) {
+        const officeFormReportId = isAsset
           // Property Acknowledgement Receipt (PAR)
-          await handleReportUpdateInTxn('par', 'PROPERTY ACKNOWLEDGEMENT RECEIPT', matchedParReport, 'PAR');
-        } else {
+          ? handleReportUpdateInTxn('par', 'PROPERTY ACKNOWLEDGEMENT RECEIPT', matchedParReport, 'PAR')
           // Inventory Custodian Slip (ICS)
-          await handleReportUpdateInTxn('ics', 'INVENTORY CUSTODIAN SLIP', matchedIcsReport, 'ICS');
+          : handleReportUpdateInTxn('ics', 'INVENTORY CUSTODIAN SLIP', matchedIcsReport, 'ICS');
+
+        // 2b-2d. PAR/ICS slip, Acceptance and Inspection Report (AIR) and Requisition and Issue Slip (RIS)
+        // on the Procurement Request Slips page. Each purchase request is one row; requests for the same
+        // office received on the same day are added to the same documents.
+        const formRow = {
+          id: officeRes.itemId,
+          requestId: request.id,
+          article: itemTitle.toUpperCase(),
+          description: request.description || request.justification || request.details || '',
+          propertyNumber: officeRes.propNo,
+          unitValue: unitCost,
+          qtyPhysicalCount: qty,
+          qtyPropertyCard: qty,
+          unitOfMeasure: request.unit || 'pcs',
+          dateReceived: groupDate,
+          datePurchased: request.datePurchased || '',
+          personAccountable: receivingCustodian.toUpperCase(),
+        };
+        const newHistoryEntry = (action: string, details: string) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp,
+          action,
+          details,
+        });
+
+        // Adds this purchase request as a row to today's grouped document, or creates the document
+        const addRowToGroupedForm = (formType: string, newDocFields: any, historyEntry: any, extraUpdates: any = {}) => {
+          const key = groupKeyFor(formType);
+          const existing = groupDocs[key];
+          if (existing) {
+            const rows = [...(existing.data.items_snapshot || []).filter((row: any) => row.requestId !== request.id), formRow];
+            const requestIds = Array.from(new Set([...(existing.data.purchaseRequestIds || []), request.id]));
+            transaction.update(existing.ref, {
+              ...extraUpdates,
+              items_snapshot: rows,
+              purchaseRequestIds: requestIds,
+              itemArticle: rows.length > 1 ? `${rows[0].article} + ${rows.length - 1} more` : rows[0].article,
+              quantity: rows.reduce((sum: number, row: any) => sum + (Number(row.qtyPhysicalCount) || 0), 0),
+              amount: rows.reduce((sum: number, row: any) => sum + (Number(row.qtyPhysicalCount) || 0) * (Number(row.unitValue) || 0), 0),
+              history: [...(existing.data.history || []), historyEntry],
+              updatedAt: timestamp,
+            });
+            return;
+          }
+          transaction.set(doc(collection(db, 'requests')), {
+            ...newDocFields,
+            ...extraUpdates,
+            receivingGroupKey: key,
+            purchaseRequestIds: [request.id],
+            itemArticle: formRow.article,
+            category: request.category || rpcppe.category || 'Equipment',
+            office: targetOfficeName,
+            originatingOffice: request.office || targetOfficeName,
+            quantity: qty,
+            amount,
+            unitCost,
+            items_snapshot: [formRow],
+            requestedAt: timestamp,
+            history: [historyEntry],
+          });
+        };
+
+        // PAR/ICS slip. Items are already registered, so it is recorded as APPROVED
+        // (approving it again would add the stock twice).
+        addRowToGroupedForm(associatedFormType, {
+          requestType: associatedFormType,
+          requestNumber: `${associatedFormType}-${groupDate.slice(0, 4)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          masterAssetId,
+          targetOffice: targetOfficeName,
+          requestedBy: receivingCustodian.toUpperCase(),
+          assignedAdmin: 'Engineer / GSO Admin',
+          justification: `${associatedFormType} for items received by ${targetOfficeName} on ${groupDate}.`,
+          reportId: officeFormReportId,
+          originalRequisitionId: request.id,
+        }, newHistoryEntry('Received & Registered', `"${itemTitle}" (Qty: ${qty}) received and registered by ${userName} under Property No. ${officeRes.propNo}, accountable: ${receivingCustodian.toUpperCase()}.`), {
+          status: 'APPROVED',
+          handledBy: `${userName} (Admin)`,
+          handledAt: timestamp,
+          responseRemarks: `Items received and registered on ${groupDate}.`,
+          receivedAt: timestamp,
+          receivedBy: userName,
+        });
+        // The pending slip made when this purchase request was submitted is now covered by the grouped slip
+        if (linkedSlipRequest) {
+          transaction.delete(doc(db, 'requests', linkedSlipRequest.id));
         }
+
+        // Acceptance and Inspection Report (AIR)
+        addRowToGroupedForm('AIR', {
+          requestType: 'AIR',
+          requestNumber: `AIR-${groupDate.slice(0, 4)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          status: 'Completed',
+          supplier: request.supplier && request.supplier !== 'N/A' ? request.supplier : '',
+          poNumber: request.poNumber || '',
+          invoiceNumber: request.invoiceNumber || '',
+          justification: `Items received by ${targetOfficeName} on ${groupDate}.`,
+          dateReceived: groupDate,
+          dateInspected: groupDate,
+          acceptanceStatus: 'Complete',
+          datePurchased: request.datePurchased || '',
+          propertyOfficer: receivingCustodian.toUpperCase(),
+          propertyOfficerPosition: '',
+          inspectionOfficer: userName,
+          inspectionOfficerPosition: userPosition || '',
+          requestedBy: userName,
+          handledBy: `${userName} (Admin)`,
+          handledAt: timestamp,
+          originalRequisitionId: request.id,
+          // Not stored as reportId: the Reports page syncs every request whose reportId matches a PAR/ICS report
+          linkedFormReportId: officeFormReportId,
+        }, newHistoryEntry('Inspected & Accepted', `"${itemTitle}" (Qty: ${qty}) inspected by ${userName} and accepted as complete. Property Officer: ${receivingCustodian.toUpperCase()}.`));
+
+        // Requisition and Issue Slip (RIS)
+        addRowToGroupedForm('RIS', {
+          requestType: 'RIS',
+          requestNumber: `RIS-${groupDate.slice(0, 4)}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          status: 'Completed',
+          division: '',
+          responsibilityCenterCode: '',
+          saiNumber: '',
+          risDate: groupDate,
+          justification: `Items issued to ${targetOfficeName} on ${groupDate}.`,
+          requestedByName: request.requestedBy || request.targetOfficeHead || '',
+          requestedByPosition: '',
+          approvedByName: '',
+          approvedByPosition: 'Municipal Mayor',
+          issuedByName: userName,
+          issuedByPosition: userPosition || '',
+          receivedByName: receivingCustodian.toUpperCase(),
+          receivedByPosition: '',
+          requestedBy: userName,
+          handledBy: `${userName} (Admin)`,
+          handledAt: timestamp,
+          originalRequisitionId: request.id,
+          // Not stored as reportId: the Reports page syncs every request whose reportId matches a PAR/ICS report
+          linkedFormReportId: officeFormReportId,
+        }, newHistoryEntry('Issued', `"${itemTitle}" (Qty: ${qty}) issued by ${userName} to ${targetOfficeName}, received by ${receivingCustodian.toUpperCase()}.`));
 
         // 3. Receiving Report (rrsp) - Always updated for all items
         await handleReportUpdateInTxn('rrsp', 'RECEIVING REPORT FOR SUPPLIES & PROPERTY', matchedRrspReport, isAsset ? 'PAR' : 'ICS');
@@ -1243,7 +1408,7 @@ const Inventory: React.FC<InventoryProps> = ({
       });
 
       alert(
-        `Success! "${itemTitle}" registered and automated reports (RPCPPE, ${associatedFormType}) compiled successfully under Property Number: ${registeredPropNo}`,
+        `Success! "${itemTitle}" registered and automated reports (RPCPPE, ${associatedFormType}) compiled successfully under Property Number: ${registeredPropNo}. The ${associatedFormType} slip, the Acceptance and Inspection Report and the Requisition and Issue Slip are on the Procurement Request Slips page.`,
       );
       setReceivingItem(null);
       setReceivingCustodian("");
@@ -2390,7 +2555,7 @@ const Inventory: React.FC<InventoryProps> = ({
     const rMode = (r.reportMode || '').toLowerCase();
     const slipNo = (r.slipNumber || r.requestNumber || '').toUpperCase();
     return (
-      reqType === 'PAR' || reqType === 'ICS' ||
+      reqType === 'PAR' || reqType === 'ICS' || reqType === 'AIR' || reqType === 'RIS' ||
       rMode === 'par' || rMode === 'ics' ||
       slipNo.startsWith('PAR-') || slipNo.startsWith('ICS-')
     );
@@ -2458,6 +2623,8 @@ const Inventory: React.FC<InventoryProps> = ({
       masterAssetId: r.masterAssetId || "",
       serialNumber: r.serialNumber || "",
       fundingSource: (r as any).fundingSource || "",
+      personAccountable: (r as any).personAccountable || "",
+      unit: (r as any).unit || "",
       amount: (r as any).amount
     }))
   ];
@@ -3804,6 +3971,10 @@ const Inventory: React.FC<InventoryProps> = ({
                             <div>
                               <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Source of Fund</span>
                               <span className="text-emerald-900 font-bold">{(req as any).fundingSource || "N/A"}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-gray-400 block font-sans font-extrabold uppercase text-[7px] tracking-wider">Person Accountable</span>
+                              <span className="text-emerald-900 font-bold uppercase">{(req as any).personAccountable || "N/A"}</span>
                             </div>
                             <div className="col-span-2 bg-emerald-50/70 p-1.5 rounded-lg border border-emerald-100 flex items-center justify-between mt-0.5">
                               <span className="text-gray-500 font-sans font-extrabold uppercase text-[8px] tracking-wider">Amount:</span>

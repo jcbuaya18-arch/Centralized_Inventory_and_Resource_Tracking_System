@@ -28,7 +28,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       onLogin();
     } catch (error: any) {
       console.error('Google Login failed:', error);
-      alert(error.message || 'Google Login failed. Please try again.');
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') return;
+      if (error.code === 'auth/operation-not-allowed') {
+        alert('Google Sign-In is not enabled. Enable it in Firebase Console → Authentication → Sign-in method → Google.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        alert(`This domain (${window.location.hostname}) is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.`);
+      } else if (error.code === 'auth/popup-blocked') {
+        alert('The sign-in popup was blocked. Please allow popups for this site and try again.');
+      } else {
+        alert(error.message || 'Google Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

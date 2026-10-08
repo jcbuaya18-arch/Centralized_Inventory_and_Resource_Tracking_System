@@ -16,7 +16,8 @@ import {
   getDocs,
   orderBy,
   updateDoc,
-  runTransaction
+  runTransaction,
+  serverTimestamp
 } from 'firebase/firestore';
 
 export const classifyAssetByValue = (cost: number): 'PAR' | 'ICS' => {
@@ -313,7 +314,7 @@ const OfficeHeadDashboard: React.FC<OfficeHeadDashboardProps> = ({
         .filter((r: any) => {
           const reqType = (r.requestType || '').toUpperCase();
           const rMode = (r.reportMode || '').toLowerCase();
-          return reqType !== 'PAR' && reqType !== 'ICS' && rMode !== 'par' && rMode !== 'ics';
+          return reqType !== 'PAR' && reqType !== 'ICS' && reqType !== 'AIR' && reqType !== 'RIS' && rMode !== 'par' && rMode !== 'ics';
         });
       setActPRs(fetched);
       setLoadingPRs(false);
@@ -1434,6 +1435,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
   const [prExpirationDate, setPrExpirationDate] = useState('');
   const [prRequestedPerson, setPrRequestedPerson] = useState(userName || '');
   const [prJustification, setPrJustification] = useState('');
+  const [prPersonAccountable, setPrPersonAccountable] = useState('');
   const [prPriority, setPrPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [prTargetOffice, setPrTargetOffice] = useState(
     userOffice && userOffice !== 'All Offices' ? userOffice : 'Municipal Engineering'
@@ -1497,7 +1499,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         .filter((r: any) => {
           const reqType = (r.requestType || '').toUpperCase();
           const rMode = (r.reportMode || '').toLowerCase();
-          return reqType !== 'PAR' && reqType !== 'ICS' && rMode !== 'par' && rMode !== 'ics';
+          return reqType !== 'PAR' && reqType !== 'ICS' && reqType !== 'AIR' && reqType !== 'RIS' && rMode !== 'par' && rMode !== 'ics';
         }) as AssetRequest[];
       setAssetRequests(fetched);
       setLoadingReqs(false);
@@ -1519,8 +1521,8 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
     e.preventDefault();
     // The form asks for one total Amount, so the request is recorded as 1 unit at that amount
     const quantity = Number(prQuantity) || 1;
-    if (!prDatePurchased || !prItemArticle.trim() || prUnitCost === '') {
-      alert("Please fill in the Date, Description, and Amount.");
+    if (!prDatePurchased || !prItemArticle.trim() || !prPersonAccountable.trim() || prUnitCost === '') {
+      alert("Please fill in the Date, Description, Person Accountable, and Amount.");
       return;
     }
 
@@ -1604,12 +1606,92 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
         office: requestingOffice,
         targetOffice,
         targetOfficeHead: (prRequestedPerson.trim() || userName || 'Office Head'),
+        personAccountable: prPersonAccountable.trim(),
         preparedBy: userName,
         requestedAt: new Date().toISOString(),
         requestType: 'FINANCIAL'
       };
 
       const prDocRef = await addDoc(collection(db, "requests"), payload);
+
+      // Auto-generate the matching PAR (≥ ₱50,000 per unit) or ICS slip on the Procurement Request Slips page
+      const slipType = classifyAssetByValue(Number(prUnitCost));
+      const slipTimestamp = new Date().toISOString();
+      const slipNumber = `${slipType}-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const accountablePerson = prPersonAccountable.trim();
+      const slipRows = [{
+        id: prDocRef.id,
+        article: prItemArticle.trim(),
+        description: prJustification.trim() || '',
+        propertyNumber: '',
+        unitValue: Number(prUnitCost),
+        qtyPhysicalCount: quantity,
+        qtyPropertyCard: quantity,
+        unitOfMeasure: prUnit || 'pcs',
+        dateReceived: prDatePurchased || '',
+        personAccountable: accountablePerson,
+      }];
+      const slipHistory = [{
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: slipTimestamp,
+        action: 'Submitted',
+        details: `${slipType} slip auto-generated from the purchase request for "${prItemArticle.trim()}" submitted by ${userName} (${requestingOffice}).`
+      }];
+
+      const slipReportPayload: any = {
+        report_type: slipType === 'PAR' ? 'Property Acknowledgement Receipt (PAR)' : 'Inventory Custodian Slip (ICS)',
+        fund_cluster: (prFundingSource || 'General Fund').toUpperCase(),
+        report_date: slipTimestamp.split('T')[0],
+        accountable_person: accountablePerson,
+        accountable_position: 'Department Representative',
+        accountability_date: slipTimestamp.split('T')[0],
+        total_value: computedAmount,
+        item_count: 1,
+        items_snapshot: slipRows,
+        status: 'Pending Approval',
+        reportMode: slipType.toLowerCase(),
+        originalRequisitionId: prDocRef.id,
+        submittedByOffice: requestingOffice,
+        senderName: userName,
+        forwardedStatus: 'Pending',
+        forwardedAt: slipTimestamp,
+        history: slipHistory,
+        created_at: serverTimestamp(),
+      };
+      if (slipType === 'PAR') {
+        slipReportPayload.parNo = slipNumber;
+        slipReportPayload.spcUnitCost = computedAmount;
+      } else {
+        slipReportPayload.icsNo = slipNumber;
+        slipReportPayload.icsDateIssued = slipTimestamp.split('T')[0];
+        slipReportPayload.icsEmployeeName = accountablePerson;
+      }
+      const slipReportRef = await addDoc(collection(db, 'reports'), slipReportPayload);
+
+      await addDoc(collection(db, 'requests'), {
+        requestType: slipType,
+        requestNumber: slipNumber,
+        masterAssetId,
+        itemArticle: prItemArticle.trim(),
+        category: prCategory,
+        office: requestingOffice,
+        originatingOffice: requestingOffice,
+        targetOffice,
+        requestedBy: accountablePerson,
+        assignedAdmin: 'Engineer / GSO Admin',
+        amount: computedAmount,
+        quantity,
+        unitCost: Number(prUnitCost),
+        justification: prJustification.trim() || `${slipType} slip for purchase request "${prItemArticle.trim()}".`,
+        status: 'PENDING',
+        reportId: slipReportRef.id,
+        originalRequisitionId: prDocRef.id,
+        items_snapshot: slipRows,
+        requestedAt: slipTimestamp,
+        history: slipHistory,
+      });
+
+      await updateDoc(prDocRef, { linkedParIcsReportId: slipReportRef.id });
 
       // Log in procurement_transactions
       await logProcurementTransaction({
@@ -1658,6 +1740,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       setPrItemArticle('');
       setPrCondition('Good');
       setPrJustification('');
+      setPrPersonAccountable('');
       setPrQuantity(1);
       setPrUnit('pcs');
       setPrUnitCost('');
@@ -1673,7 +1756,7 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
       setPrAssetSearchQuery('');
       setPrShowAssetDropdown(false);
 
-      alert(`Purchase Request submitted successfully! It has been sent to the Admin/Engineer Receiving & Inspection page.`);
+      alert(`Purchase Request submitted successfully! It has been sent to the Admin/Engineer Receiving & Inspection page, and ${slipType} slip ${slipNumber} was created on the Procurement Request Slips page.`);
     } catch (err) {
       console.error("Error creating request:", err);
       alert("Failed to submit request: " + (err instanceof Error ? err.message : String(err)));
@@ -2101,6 +2184,20 @@ All reports (RPCPPE, ${associatedFormType}) have been generated/updated and link
                       <option key={department} value={department}>{department}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Person Accountable (receives the item; named on the PAR/ICS) */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">
+                    Person Accountable <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    required
+                    placeholder="e.g. Juan Dela Cruz"
+                    value={prPersonAccountable}
+                    onChange={e => setPrPersonAccountable(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 focus:border-indigo-500 outline-none rounded-xl font-bold text-xs transition-all uppercase"
+                  />
                 </div>
 
                 {/* 5. Source of Fund & 6. Amount */}

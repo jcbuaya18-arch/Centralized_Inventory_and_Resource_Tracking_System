@@ -848,7 +848,7 @@ interface RequisitionsManagerProps {
 
 export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ offices, userName, userRole, userOffice, initialTab, initialSearch }) => {
   // Active module tab: 'PAR' | 'ICS' | 'REQUISITION' | 'FINANCIAL'
-  const [activeRequestTab, setActiveRequestTab] = useState<'PAR' | 'ICS' | 'REQUISITION' | 'FINANCIAL'>(initialTab || 'PAR');
+  const [activeRequestTab, setActiveRequestTab] = useState<'PAR' | 'ICS' | 'AIR' | 'RIS' | 'REQUISITION' | 'FINANCIAL'>(initialTab || 'PAR');
 
   const [requests, setRequests] = useState<AssetRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1513,7 +1513,296 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
   };
 
   // Print the viewed document content as an official LGU form
+  // Acceptance and Inspection Report, laid out exactly like the LGU's paper form
+  const handlePrintAIR = (req: AssetRequest) => {
+    const r = req as any;
+    const esc = (value: unknown) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmtDate = (value?: string) => {
+      if (!value) return '';
+      const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+      return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+    const items: any[] = req.items_snapshot && req.items_snapshot.length > 0 ? req.items_snapshot : [{
+      article: req.itemArticle,
+      unitOfMeasure: req.unit || 'pcs',
+      qtyPhysicalCount: req.quantity || 1,
+    }];
+
+    // Items are listed under a bold date sub-heading per purchase date, like the paper form.
+    // The first heading shares the "Item No. / Unit" header row.
+    const dateGroups: { date: string; rows: any[] }[] = [];
+    items.forEach(item => {
+      const date = fmtDate(item.datePurchased || r.datePurchased || item.dateReceived || r.dateReceived);
+      const group = dateGroups.find(g => g.date === date);
+      if (group) group.rows.push(item);
+      else dateGroups.push({ date, rows: [item] });
+    });
+    const groupDate = dateGroups[0]?.date || '';
+    const renderItemRow = (item: any) => `
+      <tr>
+        <td></td>
+        <td class="unit">${esc(item.unitOfMeasure || 'pcs')}</td>
+        <td class="desc">${esc(item.article || req.itemArticle)}</td>
+        <td class="qty">${Number(item.qtyPhysicalCount || item.qtyPropertyCard) || 1}</td>
+      </tr>`;
+    const itemRows = dateGroups.map((group, gIdx) =>
+      (gIdx === 0 ? '' : `<tr><td></td><td></td><td class="group">${esc(group.date)}</td><td></td></tr>`) +
+      group.rows.map(renderItemRow).join('')
+    ).join('');
+    const usedRows = items.length + dateGroups.length - 1;
+    const blankRows = Array.from({ length: Math.max(5, 12 - usedRows) })
+      .map(() => '<tr class="blank"><td></td><td></td><td></td><td></td></tr>').join('');
+    const isComplete = (r.acceptanceStatus || 'Complete') === 'Complete';
+
+    const printWindow = window.open('', '_blank', 'width=850,height=1100');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Acceptance and Inspection Report - ${esc(req.requestNumber || req.id.substring(0, 8))}</title>
+        <style>
+          @media print { @page { size: A4 portrait; margin: 18mm 15mm; } }
+          body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; margin: 0; padding: 24px; }
+          .sheet { max-width: 720px; margin: 0 auto; }
+          .title { text-align: center; font-size: 11pt; letter-spacing: 0.3px; }
+          .subtitle { text-align: center; font-size: 10pt; margin-bottom: 26px; }
+          .meta { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+          .meta td { border: none; padding: 1px 0; vertical-align: bottom; white-space: nowrap; }
+          .ul { display: inline-block; border-bottom: 1px solid #000; min-width: 110px; padding: 0 4px; vertical-align: bottom; }
+          .ul.wide { min-width: 220px; }
+          table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          table.grid td { border: 1px solid #000; padding: 1px 6px; height: 17px; vertical-align: bottom; }
+          table.grid .noborder { border-top: none; border-left: none; }
+          table.grid .head { text-align: center; }
+          table.grid .group { text-align: center; font-weight: 700; }
+          table.grid .unit { text-align: center; }
+          table.grid .desc { text-align: center; }
+          table.grid .qty { text-align: center; }
+          table.sign { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          table.sign td { border: 1px solid #000; border-top: none; vertical-align: top; height: 215px; padding: 2px 16px; position: relative; }
+          .sign .head { text-align: center; font-size: 10.5pt; }
+          .line-field { margin-top: 6px; }
+          .box { display: inline-block; width: 26px; height: 20px; border: 1px solid #000; vertical-align: middle; margin-right: 26px; text-align: center; line-height: 20px; }
+          .check { margin: 22px 0 0 14px; }
+          .ok { text-align: center; margin-top: 26px; line-height: 1.55; }
+          .signatory { position: absolute; bottom: 6px; font-size: 9pt; text-align: center; line-height: 1.45; }
+          .signatory.left { right: 18px; }
+          .signatory.right { left: 0; right: 0; }
+          .signatory .role { font-style: italic; font-size: 9.5pt; }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">
+          <div class="title">ACCEPTANCE AND INSPECTION REPORT</div>
+          <div class="subtitle">Tibiao, Antique</div>
+
+          <table class="meta">
+            <tr>
+              <td style="width:44%">Supplier: ${esc(req.supplier).toUpperCase()}</td>
+              <td style="width:28%; text-align:right;">AIR No. <span class="ul">${esc(req.requestNumber)}</span></td>
+              <td style="width:28%;">P.O. No. <span class="ul">${esc(req.poNumber)}</span></td>
+            </tr>
+            <tr>
+              <td>Date &nbsp;&nbsp;&nbsp;: <span class="ul wide">${esc(fmtDate(r.dateReceived || req.requestedAt))}</span></td>
+              <td style="text-align:right;">Invoice No. <span class="ul">${esc(req.invoiceNumber)}</span></td>
+              <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date: <span class="ul">${esc(fmtDate(r.invoiceDate))}</span></td>
+            </tr>
+          </table>
+
+          <table class="grid">
+            <colgroup><col style="width:13%"><col style="width:10%"><col style="width:58%"><col style="width:19%"></colgroup>
+            <tr>
+              <td class="noborder" colspan="2">Requisitioning Office: ${esc(r.originatingOffice || req.office)}</td>
+              <td class="head">Description</td>
+              <td class="head">Quantity</td>
+            </tr>
+            <tr>
+              <td class="head">Item No.</td>
+              <td class="head">Unit</td>
+              <td class="group">${esc(groupDate)}</td>
+              <td></td>
+            </tr>
+            ${itemRows}
+            ${blankRows}
+          </table>
+
+          <table class="sign">
+            <tr>
+              <td>
+                <div class="head">ACCEPTANCE</div>
+                <div class="line-field">Date Received: <span class="ul" style="min-width:150px;">${esc(fmtDate(r.dateReceived))}</span></div>
+                <div class="check"><span class="box">${isComplete ? '&#10003;' : ''}</span>Complete</div>
+                <div class="check"><span class="box">${isComplete ? '' : '&#10003;'}</span>Partial</div>
+                <div class="signatory left">
+                  <div>${esc(r.propertyOfficer).toUpperCase()}</div>
+                  <div>${esc(r.propertyOfficerPosition) || '&nbsp;'}</div>
+                  <div class="role">Property Officer</div>
+                </div>
+              </td>
+              <td>
+                <div class="head">INSPECTION</div>
+                <div class="line-field">Date Inspected: <span class="ul" style="min-width:150px;">${esc(fmtDate(r.dateInspected))}</span></div>
+                <div class="ok">Inspected, verified and found OK<br/>as to quantity and specifications.</div>
+                <div class="signatory right">
+                  <div>${esc(r.inspectionOfficer).toUpperCase()}</div>
+                  <div>${esc(r.inspectionOfficerPosition) || '&nbsp;'}</div>
+                  <div class="role">Inspection Officer/Committee</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 400);
+  };
+
+  // Requisition and Issue Slip, laid out exactly like the LGU's paper form
+  const handlePrintRIS = (req: AssetRequest) => {
+    const r = req as any;
+    const esc = (value: unknown) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const fmtShort = (value?: string) => {
+      if (!value) return '';
+      const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+      return isNaN(d.getTime()) ? value : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+    const items: any[] = req.items_snapshot && req.items_snapshot.length > 0 ? req.items_snapshot : [{
+      article: req.itemArticle,
+      unitOfMeasure: req.unit || 'pcs',
+      qtyPhysicalCount: req.quantity || 1,
+    }];
+    const itemRows = items.map((item, idx) => `
+      <tr>
+        <td class="stock">${idx + 1}</td>
+        <td class="unit">${esc(item.unitOfMeasure || 'pcs')}</td>
+        <td class="desc">${esc(item.article || req.itemArticle)}</td>
+        <td class="qty">${Number(item.qtyPhysicalCount || item.qtyPropertyCard) || 1}</td>
+        <td></td>
+      </tr>`).join('');
+    const blankRows = Array.from({ length: Math.max(8, 24 - items.length) })
+      .map(() => '<tr class="blank"><td></td><td></td><td></td><td></td><td></td></tr>').join('');
+
+    const printWindow = window.open('', '_blank', 'width=850,height=1100');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Requisition and Issue Slip - ${esc(req.requestNumber || req.id.substring(0, 8))}</title>
+        <style>
+          @media print { @page { size: A4 portrait; margin: 15mm 12mm; } }
+          body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; margin: 0; padding: 24px; }
+          .sheet { max-width: 740px; margin: 0 auto; border: 1px solid #000; }
+          .top { padding: 4px 6px 4px; }
+          .title { text-align: center; font-weight: 700; font-size: 10.5pt; }
+          .sub { text-align: center; font-size: 9pt; }
+          .lgu { text-align: center; font-size: 9pt; width: 220px; margin: 0 auto; border-bottom: 1px solid #000; }
+          .rule-row { display: flex; justify-content: space-between; margin-top: 12px; }
+          .rule-row span { border-bottom: 1px dotted #999; width: 42%; }
+          .meta { width: 100%; border-collapse: collapse; margin-top: 4px; }
+          .meta td { border: none; padding: 1px 2px; vertical-align: bottom; white-space: nowrap; font-size: 9pt; }
+          .ul { display: inline-block; border-bottom: 1px solid #000; padding: 0 4px; vertical-align: bottom; }
+          table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          table.grid td { border: 1px solid #000; padding: 1px 5px; height: 17px; vertical-align: bottom; }
+          table.grid tr:first-child td { border-top: 1px solid #000; }
+          table.grid td:first-child { border-left: none; }
+          table.grid td:last-child { border-right: none; }
+          .band td { font-style: italic; font-size: 8.5pt; height: 13px; }
+          .head td { text-align: center; }
+          .stock { text-align: right; }
+          .unit { text-align: center; }
+          .qty { text-align: center; }
+          table.sign { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          table.sign td { border: 1px solid #000; padding: 2px 4px; height: 17px; font-size: 9.5pt; vertical-align: bottom; }
+          table.sign td:first-child { border-left: none; }
+          table.sign td:last-child { border-right: none; }
+          table.sign tr:last-child td { border-bottom: none; }
+          table.sign .label { font-size: 8.5pt; white-space: nowrap; }
+          table.sign .caption td { height: 30px; vertical-align: top; text-align: center; font-size: 10pt; border-bottom: none; }
+          table.sign .caption td:first-child { border-right: none; }
+          table.sign .sig td { height: 22px; }
+          table.sign .name, table.sign .pos { text-align: center; font-size: 7.5pt; white-space: nowrap; overflow: hidden; }
+          table.sign .name { text-transform: uppercase; }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">
+          <div class="top">
+            <div class="title">REQUISITION AND ISSUE SLIP</div>
+            <div class="sub">Municipality of Tibiao</div>
+            <div class="lgu">LGU</div>
+            <div class="rule-row"><span></span><span></span></div>
+            <table class="meta">
+              <tr>
+                <td style="width:37%"></td>
+                <td style="width:22%">Responsibility Center :</td>
+                <td style="width:25%"></td>
+                <td style="width:16%"></td>
+              </tr>
+              <tr>
+                <td>Division : <span class="ul" style="width:195px;">${esc(r.division)}</span></td>
+                <td>Code : <span class="ul" style="min-width:80px;">${esc(r.responsibilityCenterCode)}</span></td>
+                <td>R. I. S. No. ${esc(req.requestNumber)}</td>
+                <td>Date: ${esc(fmtShort(r.risDate))}</td>
+              </tr>
+              <tr>
+                <td>Office : <span class="ul" style="width:201px;">${esc(r.originatingOffice || req.office)}</span></td>
+                <td></td>
+                <td>SAI No. ${esc(r.saiNumber)}</td>
+                <td>Date: ${esc(fmtShort(r.saiDate))}</td>
+              </tr>
+            </table>
+          </div>
+
+          <table class="grid">
+            <colgroup><col style="width:10%"><col style="width:9%"><col style="width:41%"><col style="width:18%"><col style="width:22%"></colgroup>
+            <tr class="band"><td colspan="3" style="border-bottom:none;">Requisition</td><td colspan="2" style="text-align:center;">Issuance</td></tr>
+            <tr class="head"><td>Stock No.</td><td>Unit</td><td>Description</td><td>Quantity</td><td>Remarks</td></tr>
+            ${itemRows}
+            ${blankRows}
+          </table>
+
+          <table class="sign">
+            <colgroup><col style="width:12%"><col style="width:22%"><col style="width:20%"><col style="width:24%"><col style="width:22%"></colgroup>
+            <tr class="caption"><td></td><td>Requested by:</td><td>Approved by:</td><td>Issued by:</td><td>Received by:</td></tr>
+            <tr class="sig"><td class="label">Signature:</td><td></td><td></td><td></td><td></td></tr>
+            <tr>
+              <td class="label">Printed Name:</td>
+              <td class="name">${esc(r.requestedByName)}</td>
+              <td class="name">${esc(r.approvedByName)}</td>
+              <td class="name">${esc(r.issuedByName)}</td>
+              <td class="name">${esc(r.receivedByName)}</td>
+            </tr>
+            <tr>
+              <td class="label">Designation:</td>
+              <td class="pos">${esc(r.requestedByPosition)}</td>
+              <td class="pos">${esc(r.approvedByPosition)}</td>
+              <td class="pos">${esc(r.issuedByPosition)}</td>
+              <td class="pos">${esc(r.receivedByPosition)}</td>
+            </tr>
+          </table>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 400);
+  };
+
   const handlePrintDocument = (req: AssetRequest) => {
+    if (req.requestType === 'AIR') {
+      handlePrintAIR(req);
+      return;
+    }
+    if (req.requestType === 'RIS') {
+      handlePrintRIS(req);
+      return;
+    }
     const docTitle = req.requestType === 'PAR'
       ? 'PROPERTY ACKNOWLEDGEMENT RECEIPT'
       : req.requestType === 'ICS'
@@ -1942,7 +2231,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
             Unified Hub &bull; Review, Approve, and Track PAR, ICS, and Procurement Slip Submissions
           </p>
         </div>
-        {userRole === UserRole.ADMIN && (
+        {userRole === UserRole.ADMIN && activeRequestTab !== 'AIR' && activeRequestTab !== 'RIS' && (
           <button
             type="button"
             onClick={openAddHandler}
@@ -1958,6 +2247,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
         {[
           { id: 'PAR', label: 'PAR Requests', count: requests.filter(r => String(r.requestType || '').toUpperCase() === 'PAR').length },
           { id: 'ICS', label: 'ICS Requests', count: requests.filter(r => String(r.requestType || '').toUpperCase() === 'ICS').length },
+          { id: 'AIR', label: 'Acceptance & Inspection', count: requests.filter(r => String(r.requestType || '').toUpperCase() === 'AIR').length },
+          { id: 'RIS', label: 'Requisition & Issue', count: requests.filter(r => String(r.requestType || '').toUpperCase() === 'RIS').length },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -2034,6 +2325,8 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
 
             const isFinancial = req.requestType === 'FINANCIAL';
             const isAccounting = req.requestType === 'PAR' || req.requestType === 'ICS';
+            const isAIR = req.requestType === 'AIR';
+            const isRIS = req.requestType === 'RIS';
 
             return (
               <div
@@ -2052,7 +2345,15 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                         {statusLabel[req.status] || req.status}
                       </span>
 
-                      {isAccounting ? (
+                      {isAIR ? (
+                        <span className="px-2 py-0.5 rounded-full text-[7.5px] bg-teal-50 text-teal-700 font-black border border-teal-200 uppercase tracking-widest">
+                          Acceptance &amp; Inspection
+                        </span>
+                      ) : isRIS ? (
+                        <span className="px-2 py-0.5 rounded-full text-[7.5px] bg-sky-50 text-sky-700 font-black border border-sky-200 uppercase tracking-widest">
+                          Requisition &amp; Issue
+                        </span>
+                      ) : isAccounting ? (
                         <span className="px-2 py-0.5 rounded-full text-[7.5px] bg-indigo-50 text-indigo-750 font-black border border-indigo-200 uppercase tracking-widest">
                           {req.requestType} REQUEST
                         </span>
@@ -2087,7 +2388,21 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   {/* Metadata block */}
                   <div className="mt-2 space-y-1 text-[11px] text-slate-500 font-bold uppercase tracking-wide">
                     <p>Office: <span className="text-slate-800">{req.office || 'LGU Department'}</span></p>
-                    {isAccounting ? (
+                    {isAIR ? (
+                      <>
+                        <p>AIR No: <span className="text-slate-800">{req.requestNumber || req.id.substring(0, 8)}</span></p>
+                        <p>Supplier: <span className="text-slate-800">{req.supplier || 'N/A'}</span></p>
+                        <p>Date Received: <span className="text-slate-800">{(req as any).dateReceived || 'N/A'}</span></p>
+                        <p>Property Officer: <span className="text-slate-800">{(req as any).propertyOfficer || 'N/A'}</span></p>
+                      </>
+                    ) : isRIS ? (
+                      <>
+                        <p>RIS No: <span className="text-slate-800">{req.requestNumber || req.id.substring(0, 8)}</span></p>
+                        <p>Date: <span className="text-slate-800">{(req as any).risDate || 'N/A'}</span></p>
+                        <p>Issued by: <span className="text-slate-800">{(req as any).issuedByName || 'N/A'}</span></p>
+                        <p>Received by: <span className="text-slate-800">{(req as any).receivedByName || 'N/A'}</span></p>
+                      </>
+                    ) : isAccounting ? (
                       <>
                         <p>Request No: <span className="text-slate-800">{req.requestNumber || `REQ-${req.id.substring(0, 8)}`}</span></p>
                         <p>Assigned Admin: <span className="text-slate-800">{req.assignedAdmin || 'Not Assigned'}</span></p>
@@ -2184,14 +2499,14 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <span>View {isAccounting ? `${req.requestType} Document` : 'Request'} Content</span>
+                    <span>View {isAccounting || isAIR || isRIS ? `${req.requestType} Document` : 'Request'} Content</span>
                   </button>
                   {userRole === UserRole.ACCOUNTING && req.requestType === 'REQUISITION' && req.status === 'Pending Accounting Review' && (
                     <button onClick={() => openEditHandler(req)} className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider">Review / Edit Requisition</button>
                   )}
 
                   {/* Evaluation Actions form for standard requisitions only. PAR/ICS admin requests are view-only here. */}
-                  {!isAccounting && (req.status === 'PENDING' || req.status === 'Pending Accounting Review' || (req.requestType === 'REQUISITION' && req.status === 'Pending Engineer/Admin Review')) &&(userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
+                  {!isAccounting && !isAIR && !isRIS && (req.status === 'PENDING' || req.status === 'Pending Accounting Review' || (req.requestType === 'REQUISITION' && req.status === 'Pending Engineer/Admin Review')) &&(userRole === UserRole.ADMIN || userRole === UserRole.ACCOUNTING) && (
                     <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-200/80 space-y-2">
                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Submit Evaluation Decision</span>
                       <input
@@ -2286,7 +2601,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                   </div>
 
                 </div>
-                {userRole === UserRole.OFFICE_HEAD && (
+                {userRole === UserRole.OFFICE_HEAD && activeRequestTab !== 'AIR' && activeRequestTab !== 'RIS' && (
                   <button
                     type="button"
                     onClick={openAddHandler}
@@ -2899,7 +3214,11 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
                         ? 'PROPERTY ACKNOWLEDGEMENT RECEIPT (PAR)'
                         : viewingRequest.requestType === 'ICS'
                           ? 'INVENTORY CUSTODIAN SLIP (ICS)'
-                          : 'OFFICIAL REQUEST DOCUMENT'}
+                          : viewingRequest.requestType === 'AIR'
+                            ? 'ACCEPTANCE AND INSPECTION REPORT (AIR)'
+                            : viewingRequest.requestType === 'RIS'
+                              ? 'REQUISITION AND ISSUE SLIP (RIS)'
+                              : 'OFFICIAL REQUEST DOCUMENT'}
                     </h2>
                   </div>
                   <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1 ml-4">
@@ -3034,7 +3353,7 @@ export const RequisitionsManager: React.FC<RequisitionsManagerProps> = ({ office
               </div>
 
               {/* Modal Evaluation Action Controls */}
-              {userRole === UserRole.ADMIN && (
+              {userRole === UserRole.ADMIN && viewingRequest.requestType !== 'AIR' && viewingRequest.requestType !== 'RIS' && (
                 <div className="pt-4 border-t border-slate-150 space-y-3">
                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
                     Admin Evaluation & Decision Controls

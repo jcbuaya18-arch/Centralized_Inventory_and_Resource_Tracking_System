@@ -171,6 +171,13 @@ const Reports: React.FC<ReportsProps> = ({
       setActiveTab(initialTab);
     }
   }, [initialTab]);
+
+  // The Audit Vault is not available to the Engineer/Admin; fall back to the workstation
+  useEffect(() => {
+    if (currentRole === 'ADMIN' && activeTab === 'archive') {
+      setActiveTab('generator');
+    }
+  }, [currentRole, activeTab]);
   const [vaultSubTab, setVaultSubTab] = useState<string>(
     (currentRole === 'OFFICE_HEAD' || currentRole === 'ACCOUNTING') ? 'drafts' : 'all'
   );
@@ -359,46 +366,6 @@ const Reports: React.FC<ReportsProps> = ({
 
     return () => unsubscribe();
   }, []);
-
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'notifications'),
-      orderBy('timestamp', 'desc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setNotifications(list);
-    }, (err) => {
-      console.error("Notifications fetch error:", err);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const dismissNotification = async (notificationId: string) => {
-    try {
-      await updateDoc(doc(db, 'notifications', notificationId), { isRead: true });
-    } catch (err) {
-      console.error("Dismiss notification error:", err);
-    }
-  };
-
-  const activeNotifications = useMemo(() => {
-    return notifications.filter(n => {
-      if (n.isRead) return false;
-      if (currentRole === 'ADMIN') {
-        return n.recipientRole === 'ADMIN';
-      }
-      if (currentRole === 'OFFICE_HEAD') {
-        return n.recipientRole === 'OFFICE_HEAD' && n.recipientOffice === currentOffice;
-      }
-      if (currentRole === 'ACCOUNTING') {
-        return n.recipientRole === 'ACCOUNTING' || n.recipientRole === 'OFFICE_HEAD';
-      }
-      return false;
-    });
-  }, [notifications, currentRole, currentOffice]);
 
   const displayedReports = useMemo(() => {
     let list = savedReports;
@@ -3377,7 +3344,7 @@ const Reports: React.FC<ReportsProps> = ({
             </button>
             <div className={`flex bg-gray-100 p-1 rounded-2xl space-x-1 transition-all duration-300`}>
               <button onClick={startBlankAudit} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'generator' && !editingReportId ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>New Manual Audit</button>
-              {currentRole !== 'ACCOUNTING' && (
+              {currentRole !== 'ACCOUNTING' && currentRole !== 'ADMIN' && (
                 <>
                   <button onClick={() => setActiveTab('archive')} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'archive' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}>Audit Vault ({savedReports.length})</button>
                 </>
@@ -3634,59 +3601,6 @@ const Reports: React.FC<ReportsProps> = ({
           </div>
         )}
       </div>
-
-      {/* Real-time Notifications Banner Area */}
-      {activeNotifications.length > 0 && (
-        <div className="space-y-3 no-print">
-          {activeNotifications.map(notif => (
-            <div 
-              key={notif.id} 
-              className={`p-5 rounded-[24px] shadow-lg border flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in slide-in-from-top-3 duration-300 ${
-                notif.type === 'DECISION' 
-                  ? 'bg-amber-50 border-amber-200 text-amber-900' 
-                  : 'bg-indigo-50 border-indigo-200 text-indigo-900'
-              }`}
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="text-lg mt-0.5">
-                  {notif.type === 'DECISION' ? '🔔' : '📨'}
-                </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    {notif.type === 'DECISION' ? 'Workflow Status Decision' : 'New Report Submission Alert'}
-                  </p>
-                  <p className="text-xs font-semibold mt-1">{notif.message}</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
-                    Received: {new Date(notif.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 self-end md:self-center">
-                {notif.reportId && notif.reportId !== 'new' && (
-                  <button 
-                    onClick={() => {
-                      const rep = savedReports.find(r => r.id === notif.reportId);
-                      if (rep) {
-                        loadFromArchive(rep);
-                      }
-                      dismissNotification(notif.id);
-                    }} 
-                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-md"
-                  >
-                    View Report
-                  </button>
-                )}
-                <button 
-                  onClick={() => dismissNotification(notif.id)} 
-                  className="px-4 py-2 bg-white/85 hover:bg-white text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-200 shadow-sm transition-all"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {activeTab === 'transfers' ? (
         <InventoryTransferReport 
